@@ -93,7 +93,7 @@ jobs:
             fi
 
             # opentopodata changes
-            if git diff --name-only "$BASE_REF" HEAD | grep -q "^opentopodata/"; then
+            if git diff --name-only "$BASE_REF" HEAD | grep -E -q "^opentopodata(/|$)"; then
               add_to_matrix "opentopodata" "-opentopodata" "opentopodata/docker/Dockerfile" "opentopodata"
             fi
           fi
@@ -167,5 +167,7 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ matrix.image-suffix }}:buildcache
-          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ matrix.image-suffix }}:buildcache,mode=max
+          cache-from: |
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ matrix.image-suffix }}:buildcache
+            type=gha
+          cache-to: type=gha,mode=max
