@@ -1,9 +1,9 @@
 name: Delete Old Container Images
 
 on:
-  workflow_dispatch: # Allow manual run
-  schedule:
-    - cron: "0 0 * * 0" # Run weekly on Sunday at midnight
+  workflow_dispatch: # Allow manual run (USE WITH CAUTION: This script deletes underlying images of multi-arch builds causing manifest errors)
+  # schedule:
+  #   - cron: "0 0 * * 0" # Run weekly on Sunday at midnight
 
 jobs:
   clean-ghcr:
