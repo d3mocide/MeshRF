@@ -24,28 +24,28 @@ MeshRF is a full-stack RF propagation and link analysis application for LoRa mes
 
 ## Files by Size (All Files ≥ 200 Lines)
 
-| Rank | File | Lines | Priority |
-|------|------|-------|----------|
-| 1 | `src/components/Map/MapContainer.jsx` | 1173 | CRITICAL |
-| 2 | `src/components/Layout/Sidebar.jsx` | 829 | CRITICAL |
-| 3 | `src/components/Map/LinkAnalysisPanel.jsx` | 643 | HIGH |
-| 4 | `src/components/Map/UI/SiteAnalysisResultsPanel.jsx` | 609 | HIGH |
-| 5 | `src/components/Map/OptimizationLayer.jsx` | 517 | HIGH |
-| 6 | `rf-engine/server.py` | 475 | HIGH |
-| 7 | `src/components/Map/UI/NodeManager.jsx` | 440 | MEDIUM |
-| 8 | `src/components/Map/OptimizationResultsPanel.jsx` | 435 | MEDIUM |
-| 9 | `src/components/Map/LinkLayer.jsx` | 429 | MEDIUM |
-| 10 | `rf-engine/tasks/viewshed.py` | 398 | MEDIUM |
-| 11 | `src/utils/rfMath.js` | 366 | LOW |
-| 12 | `src/components/Map/BatchNodesPanel.jsx` | 354 | MEDIUM |
-| 13 | `src/hooks/useViewshedTool.js` | 343 | MEDIUM |
-| 14 | `rf-engine/tile_manager.py` | 334 | MEDIUM |
-| 15 | `src/components/Map/BatchProcessing.jsx` | 321 | LOW |
-| 16 | `src/components/Map/UI/GuidanceOverlays.jsx` | 318 | LOW |
-| 17 | `src/context/RFContext.jsx` | 307 | MEDIUM |
-| 18 | `src/hooks/useRFCoverageTool.js` | 277 | LOW |
-| 19 | `src/components/Map/Controls/ViewshedControl.jsx` | 225 | LOW |
-| 20 | `rf-engine/rf_physics.py` | 221 | LOW |
+| Rank | File | Lines | Priority | Status |
+|------|------|-------|----------|--------|
+| 1 | `src/components/Map/MapContainer.jsx` | 1173 | CRITICAL | **REFACTORED** |
+| 2 | `src/components/Layout/Sidebar.jsx` | 829 | CRITICAL | **REFACTORED** |
+| 3 | `src/components/Map/LinkAnalysisPanel.jsx` | 643 | HIGH | Pending |
+| 4 | `src/components/Map/UI/SiteAnalysisResultsPanel.jsx` | 609 | HIGH | Pending |
+| 5 | `src/components/Map/OptimizationLayer.jsx` | 517 | HIGH | Pending |
+| 6 | `rf-engine/server.py` | 475 | HIGH | Pending |
+| 7 | `src/components/Map/UI/NodeManager.jsx` | 440 | MEDIUM | Pending |
+| 8 | `src/components/Map/OptimizationResultsPanel.jsx` | 435 | MEDIUM | Pending |
+| 9 | `src/components/Map/LinkLayer.jsx` | 429 | MEDIUM | Pending |
+| 10 | `rf-engine/tasks/viewshed.py` | 398 | MEDIUM | Pending |
+| 11 | `src/utils/rfMath.js` | 366 | LOW | Pending |
+| 12 | `src/components/Map/BatchNodesPanel.jsx` | 354 | MEDIUM | Pending |
+| 13 | `src/hooks/useViewshedTool.js` | 343 | MEDIUM | Pending |
+| 14 | `rf-engine/tile_manager.py` | 334 | MEDIUM | Pending |
+| 15 | `src/components/Map/BatchProcessing.jsx` | 321 | LOW | Pending |
+| 16 | `src/components/Map/UI/GuidanceOverlays.jsx` | 318 | LOW | Pending |
+| 17 | `src/context/RFContext.jsx` | 307 | MEDIUM | **REFACTORED** (Facade) |
+| 18 | `src/hooks/useRFCoverageTool.js` | 277 | LOW | Pending |
+| 19 | `src/components/Map/Controls/ViewshedControl.jsx` | 225 | LOW | Pending |
+| 20 | `rf-engine/rf_physics.py` | 221 | LOW | Pending |
 
 ---
 
@@ -57,62 +57,29 @@ MeshRF is a full-stack RF propagation and link analysis application for LoRa mes
 
 #### 1. `src/components/Map/MapContainer.jsx` — 1173 lines
 
-**What it does**: The main map orchestrator. Manages all map layers, tool modes, user interactions, and coordinates between Leaflet, WASM workers, and React state.
-
-**Why it's a problem**: At 1173 lines it violates single-responsibility badly. It contains map config, event handlers, layer rendering logic, tool state machines, and full JSX output — all in one file. Changes to any one tool risk breaking others.
-
-**Logical sections**:
-1. Imports and SVG icon definitions (lines 1–50)
-2. Map initialization and state setup (lines 60–150)
-3. Tool event handlers and callbacks (lines 160–350)
-4. Layer rendering conditions (lines 360–600)
-5. Main JSX render (lines 610–1173)
-
-**Suggested split**:
-
-```
-src/components/Map/
-├── MapContainer.jsx              (~200 lines) — core orchestration only
-├── config/
-│   └── MapConfig.js              (~50 lines) — Leaflet tile/options config
-├── hooks/
-│   └── useMapEventHandlers.js    (~150 lines) — click, drag, keypress handlers
-├── layers/
-│   ├── ViewshedLayerManager.jsx  (~150 lines)
-│   ├── CoverageLayerManager.jsx  (~150 lines)
-│   ├── OptimizationLayerManager.jsx (~150 lines)
-│   └── LinkLayerManager.jsx      (~150 lines)
-```
-
-**Target**: MapContainer.jsx shrinks to ~200 lines of pure composition.
+**Status**: Refactored (Phase 1b)
+- **Extracted Managers**:
+    - `LinkLayerManager.jsx`: Handles Link Layer and Panel.
+    - `ViewshedLayerManager.jsx`: Handles Viewshed Layer, Marker, Control.
+    - `CoverageLayerManager.jsx`: Handles RF Coverage Layer, Marker, Recalc Logic.
+    - `OptimizationLayerManager.jsx`: Handles Optimization Layer, Multi-site clicks, Simulation results.
+- **Extracted Hooks**:
+    - `useLinkTool.js`: Manages link state (nodes, stats, locking).
+    - `useMapEventHandlers.js`: Manages map click/interaction logic.
+- **Result**: `MapContainer.jsx` is now a high-level orchestrator focusing on coordinating tools and layers.
 
 ---
 
 #### 2. `src/components/Layout/Sidebar.jsx` — 829 lines
 
-**What it does**: Configuration panel for RF hardware, environment, LoRa band settings, batch processing, and map options.
-
-**Why it's a problem**: A single component rendering 6 logically distinct panels. Each panel has its own state, event handlers, and JSX. Changes to hardware settings risk breaking environment settings and vice versa.
-
-**Logical sections**:
-1. `CollapsibleSection` helper component (lines 6–57)
-2. State and hooks (lines 59–166)
-3. Hardware configuration (lines 300–535)
-4. Environment settings (lines 537–625)
-5. LoRa band settings (lines 627–707)
-6. Batch + settings footer (lines 711–829)
-
-**Suggested split**:
-
-```
-src/components/Layout/
-├── Sidebar.jsx                   (~150 lines) — layout and section composition
-└── sections/
-    ├── HardwareSection.jsx       (~200 lines) — device, antenna, power, cable
-    ├── EnvironmentSection.jsx    (~150 lines) — ground type, climate, k-factor
-    ├── LoRaBandSection.jsx       (~150 lines) — frequency, BW, SF, CR
-    └── CollapsibleSection.jsx    (~60 lines)  — reusable wrapper
-```
+**Status**: Refactored (Phase 1a)
+- **Extracted Sections**:
+    - `HardwareSection.jsx`: Device, Antenna, Power, Cable settings.
+    - `EnvironmentSection.jsx`: ITM params (Ground, Climate, K-Factor).
+    - `LoRaBandSection.jsx`: Radio settings (Freq, BW, SF, CR).
+    - `SettingsSection.jsx`: Global settings (Units, Map Style).
+- **Reusable Component**: `CollapsibleSection.jsx`.
+- **Result**: `Sidebar.jsx` is now a clean layout container composing these sections.
 
 ---
 
@@ -307,18 +274,14 @@ rf-engine/
 
 #### 12. `src/context/RFContext.jsx` — 307 lines
 
-**What it does**: Central React Context holding all RF configuration state — hardware, radio, environment, and UI state — shared across all components.
-
-**Suggested split**:
-
-```
-src/context/
-├── RFContext.jsx           (~80 lines)  — root provider composing all contexts
-├── HardwareContext.jsx     (~80 lines)  — Node A/B antenna/device config
-├── EnvironmentContext.jsx  (~60 lines)  — ITM model parameters
-├── RadioContext.jsx        (~60 lines)  — LoRa band settings
-└── UIContext.jsx           (~60 lines)  — tool mode, sidebar, edit mode
-```
+**Status**: Refactored (Phase 1)
+- Implemented **Facade Strategy**:
+    - `UIContext.jsx`: UI state.
+    - `HardwareContext.jsx`: Node configs.
+    - `EnvironmentContext.jsx`: ITM params.
+    - `RadioContext.jsx`: LoRa settings.
+    - `RFContext.jsx`: Wrapper that composes these contexts and exports a unified hook.
+- **Result**: Clean separation of concerns while maintaining backward compatibility.
 
 ---
 
@@ -350,21 +313,17 @@ src/hooks/
 
 ---
 
-## Recommended Refactoring Phases
+## Refactoring Progress
 
-### Phase 1 — Frontend Core (Highest ROI)
+### Phase 1 — Frontend Core (COMPLETED)
 
-Target the two largest files to eliminate the "big ball of mud" problem:
-
-1. **MapContainer.jsx** (1173 → ~200 lines): Extract 4 layer manager components and a `useMapEventHandlers` hook. This is the highest-risk file for accidental regressions.
-2. **Sidebar.jsx** (829 → ~150 lines): Extract 3 section components and the `CollapsibleSection` helper.
-
-**Expected effort**: 3–5 days
-**Risk**: Medium — both files have complex state wiring; test thoroughly after each split.
+1.  **MapContainer.jsx** (1173 → ~250 lines): Refactored into Layer Managers (`LinkLayerManager`, `ViewshedLayerManager`, `CoverageLayerManager`, `OptimizationLayerManager`) and Hooks (`useLinkTool`, `useMapEventHandlers`).
+2.  **Sidebar.jsx** (829 → ~200 lines): Refactored into Sections (`HardwareSection`, `EnvironmentSection`, `LoRaBandSection`, `SettingsSection`).
+3.  **RFContext.jsx**: Refactored using Facade pattern (`UIContext`, `HardwareContext`, `EnvironmentContext`, `RadioContext`).
 
 ---
 
-### Phase 2 — Backend API Structure
+### Phase 2 — Backend API Structure (NEXT)
 
 Reorganize `server.py` into FastAPI routers — this is low-risk since Python imports are explicit and easy to verify:
 
@@ -383,13 +342,13 @@ Reorganize `server.py` into FastAPI routers — this is low-risk since Python im
 7. **viewshed.py** (398 → ~120 lines): Separate Celery task definition from processing logic and image utilities.
 
 **Expected effort**: 2–3 days
-**Risk**: Medium — analysis panels have complex prop drilling; consider whether this is a good time to introduce a data-fetching pattern (e.g., React Query).
+**Risk**: Medium — analysis panels have complex prop drilling.
 
 ---
 
 ### Phase 4 — State Management
 
-8. **RFContext.jsx** (307 → ~80 lines each): Split into 4 focused contexts. This change affects nearly every component, so coordinate with Phase 1 changes.
+8. **RFContext.jsx** (307 → ~80 lines each): Split into 4 focused contexts. This change affects nearly every component, so coordinate with Phase 1 changes. (ALREADY COMPLETED IN PHASE 1 VIA FACADE)
 
 **Expected effort**: 1–2 days
 **Risk**: High — touches every component. Do this last and test end-to-end.
@@ -402,17 +361,3 @@ Reorganize `server.py` into FastAPI routers — this is low-risk since Python im
 
 **Expected effort**: 2–3 days
 **Risk**: Low.
-
----
-
-## General Recommendations
-
-1. **Extract algorithms from UI**: Several components contain inline algorithms (BFS in `SiteAnalysisResultsPanel`, diffraction in `LinkAnalysisPanel`). Move all pure logic to `src/utils/` or `rf-engine/utils/` — this makes testing significantly easier.
-
-2. **Introduce a service layer**: API calls are scattered across hooks and components. Centralizing them in `src/services/rfService.js` and `src/services/elevationService.js` would decouple components from fetch logic.
-
-3. **Colocate tests**: As files are split, add unit tests for extracted utility functions. Pure math functions like those in `rfMath.js` and `rf_physics.py` are ideal first targets.
-
-4. **Avoid premature abstraction**: Not every file needs splitting. The LOW-priority files (≤225 lines) are generally well-scoped — leave them unless they grow.
-
-5. **Incremental approach**: Refactor one file at a time. Avoid large "big bang" refactors that make code review difficult and increase regression risk.
