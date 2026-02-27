@@ -30,10 +30,10 @@ MeshRF is a full-stack RF propagation and link analysis application for LoRa mes
 | 2 | `src/components/Layout/Sidebar.jsx` | 829 | CRITICAL | **REFACTORED** |
 | 3 | `src/components/Map/LinkAnalysisPanel.jsx` | 643 | HIGH | **REFACTORED** |
 | 4 | `src/components/Map/UI/SiteAnalysisResultsPanel.jsx` | 609 | HIGH | **REFACTORED** |
-| 5 | `src/components/Map/OptimizationLayer.jsx` | 517 | HIGH | Pending |
+| 5 | `src/components/Map/OptimizationLayer.jsx` | 517 | HIGH | **REFACTORED** |
 | 6 | `rf-engine/server.py` | 475 | HIGH | **REFACTORED** |
 | 7 | `src/components/Map/UI/NodeManager.jsx` | 440 | MEDIUM | Pending |
-| 8 | `src/components/Map/OptimizationResultsPanel.jsx` | 435 | MEDIUM | Pending |
+| 8 | `src/components/Map/OptimizationResultsPanel.jsx` | 435 | MEDIUM | **REFACTORED** |
 | 9 | `src/components/Map/LinkLayer.jsx` | 429 | MEDIUM | Pending |
 | 10 | `rf-engine/tasks/viewshed.py` | 398 | MEDIUM | **REFACTORED** |
 | 11 | `src/utils/rfMath.js` | 366 | LOW | Pending |
@@ -115,20 +115,14 @@ MeshRF is a full-stack RF propagation and link analysis application for LoRa mes
 
 #### 5. `src/components/Map/OptimizationLayer.jsx` — 517 lines
 
-**What it does**: Interactive map layer for site optimization — heatmap generation, ranked candidate display, optimization settings, and real-time feedback.
-
-**Suggested split**:
-
-```
-src/components/Map/
-├── OptimizationLayer.jsx         (~200 lines) — orchestration
-├── UI/
-│   ├── OptimizationSettings.jsx  (~120 lines)
-│   ├── CandidateNodeMarker.jsx   (~80 lines)
-│   └── HeatmapOverlay.jsx        (~80 lines)
-└── hooks/
-    └── useOptimizationHeatmap.js (~80 lines)
-```
+**Status**: Refactored (Phase 4)
+- **Extracted Components**:
+    - `UI/Optimization/ScanningOverlay.jsx`: Loading spinner logic.
+    - `UI/Optimization/OptimizationAlert.jsx`: Notification/Alert logic.
+    - `UI/Optimization/OptimizationSettingsPanel.jsx`: Advanced settings.
+    - `UI/Optimization/CandidateMarkers.jsx`: Ghost node rendering.
+    - `UI/Optimization/HeatmapOverlay.jsx`: Heatmap visualization.
+- **Result**: `OptimizationLayer.jsx` is now a clean orchestrator (~180 lines).
 
 ---
 
@@ -171,19 +165,12 @@ src/utils/
 
 #### 8. `src/components/Map/OptimizationResultsPanel.jsx` — 435 lines
 
-**What it does**: Displays ranked optimization results with sorting, detail expansion, and export.
-
-**Suggested split**:
-
-```
-src/components/Map/
-├── OptimizationResultsPanel.jsx  (~150 lines)
-├── UI/
-│   ├── ResultTable.jsx           (~120 lines)
-│   └── ResultRow.jsx             (~80 lines)
-src/utils/
-└── processOptimizationResults.js (~60 lines)
-```
+**Status**: Refactored (Phase 4)
+- **Extracted Components**:
+    - `UI/Optimization/OptimizationHelp.jsx`: Help slide-down.
+    - `UI/Optimization/ScoringWeights.jsx`: Scoring weights display.
+    - `UI/Optimization/ResultRow.jsx`: Individual result item.
+- **Result**: `OptimizationResultsPanel.jsx` is now a clean composition (~150 lines).
 
 ---
 
@@ -298,18 +285,27 @@ src/hooks/
 
 ---
 
-### Phase 4 — State Management
+### Phase 4 — Optimization Components (COMPLETED)
 
-8. **RFContext.jsx** (307 → ~80 lines each): Split into 4 focused contexts. This change affects nearly every component, so coordinate with Phase 1 changes. (ALREADY COMPLETED IN PHASE 1 VIA FACADE)
+8. **OptimizationLayer.jsx** (517 → ~180 lines): Extracted `ScanningOverlay`, `OptimizationAlert`, `OptimizationSettingsPanel`, `CandidateMarkers`, and `HeatmapOverlay`.
+9. **OptimizationResultsPanel.jsx** (435 → ~150 lines): Extracted `OptimizationHelp`, `ScoringWeights`, and `ResultRow`.
+
+**Status**: Completed.
+
+---
+
+### Phase 5 — State Management
+
+10. **RFContext.jsx** (307 → ~80 lines each): Split into 4 focused contexts. This change affects nearly every component, so coordinate with Phase 1 changes. (ALREADY COMPLETED IN PHASE 1 VIA FACADE)
 
 **Expected effort**: 1–2 days
 **Risk**: High — touches every component. Do this last and test end-to-end.
 
 ---
 
-### Phase 5 — Cleanup (Low Priority)
+### Phase 6 — Cleanup (Low Priority)
 
-9. Remaining MEDIUM/LOW priority files — `NodeManager`, `OptimizationLayer`, `LinkLayer`, `OptimizationResultsPanel`, `rfMath.js`, batch components.
+11. Remaining MEDIUM/LOW priority files — `NodeManager`, `LinkLayer`, `rfMath.js`, batch components.
 
 **Expected effort**: 2–3 days
 **Risk**: Low.

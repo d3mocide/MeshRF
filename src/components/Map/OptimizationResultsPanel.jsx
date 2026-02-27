@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
-
 import L from 'leaflet';
+
+// Imported Sub-components
+import OptimizationHelp from './UI/Optimization/OptimizationHelp';
+import ScoringWeights from './UI/Optimization/ScoringWeights';
+import ResultRow from './UI/Optimization/ResultRow';
 
 const OptimizationResultsPanel = ({ results, weights, onClose, onCenter, onReset, onRecalculate }) => {
     const [isMinimized, setIsMinimized] = useState(false);
@@ -49,67 +53,9 @@ const OptimizationResultsPanel = ({ results, weights, onClose, onCenter, onReset
     
     return (
         <div ref={panelRef} style={{ ...panelStyle }}>
-            {/* help slide-down - RE-INTEGRATED INTO PANEL */}
-            {showHelp && (
-                <div style={{
-                    position: 'absolute',
-                    top: '0',
-                    left: '0',
-                    right: '0',
-                    bottom: '0',
-                    background: 'rgba(10, 10, 15, 0.98)',
-                    backdropFilter: 'blur(15px)',
-                    border: '1px solid #00f2ff44',
-                    borderRadius: '8px',
-                    padding: '24px',
-                    zIndex: 3000, 
-                    boxShadow: '0 12px 48px rgba(0,0,0,0.8)',
-                    fontSize: '14px',
-                    lineHeight: '1.6',
-                    whiteSpace: 'normal',
-                    wordBreak: 'break-word',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    animation: 'fadeIn 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
-                }}>
-                    <div style={{ color: '#00f2ff', fontWeight: 'bold', marginBottom: '16px', fontSize: '1.2em', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <line x1="12" y1="16" x2="12" y2="12"></line>
-                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                        </svg>
-                        Coverage Analysis Guide
-                    </div>
-                    <div style={{ color: '#ccc', marginBottom: '16px' }}>
-                        This tool identifies optimal reception locations that maximize signal strength and line-of-sight based on your transmitter.
-                    </div>
-                    <ul style={{ paddingLeft: '20px', margin: '0 0 20px 0', color: '#bbb', flexGrow: 1 }}>
-                        <li style={{ marginBottom: '10px' }}><strong>Signal Quality:</strong> Sites are ranked by Line-of-Sight, Fresnel Zone clearance, and Signal Strength.</li>
-                        <li style={{ marginBottom: '10px' }}><strong>Coverage Radius:</strong> Scanning a {(results?.[0]?.distance/1000 || 5).toFixed(1)}km radius from your TX.</li>
-                        <li style={{ marginBottom: '10px' }}><strong>Dynamic Re-scan:</strong> Drag the radius slider or click a new center to update coverage.</li>
-                    </ul>
-                    <button 
-                        onClick={() => setShowHelp(false)}
-                        style={{ 
-                            marginTop: 'auto', 
-                            width: '100%', 
-                            background: 'rgba(0, 242, 255, 0.1)', 
-                            border: '1px solid #00f2ff66', 
-                            color: '#00f2ff', 
-                            padding: '12px', 
-                            borderRadius: '8px', 
-                            cursor: 'pointer', 
-                            fontWeight: 'bold', 
-                            fontSize: '14px',
-                            transition: 'all 0.2s ease'
-                        }}
-                        onMouseOver={e => e.target.style.background = 'rgba(0, 242, 255, 0.2)'}
-                        onMouseOut={e => e.target.style.background = 'rgba(0, 242, 255, 0.1)'}
-                    >
-                        Got it
-                    </button>
-                </div>
-            )}
+            {/* Help Slide-down */}
+            <OptimizationHelp showHelp={showHelp} setShowHelp={setShowHelp} results={results} />
+
             {/* Mobile Grab Handle */}
             {isMobile && (
                 <div 
@@ -205,49 +151,7 @@ const OptimizationResultsPanel = ({ results, weights, onClose, onCenter, onReset
             </div>
 
             {/* Scoring Weights Section */}
-            {weights && !isMinimized && (
-                <div style={{
-                    background: 'rgba(0, 242, 255, 0.05)',
-                    border: '1px solid rgba(0, 242, 255, 0.15)',
-                    borderRadius: '6px',
-                    padding: '10px 12px',
-                    marginBottom: '16px',
-                    flexShrink: 0
-                }}>
-                    <div style={{
-                        color: '#00f2ff',
-                        fontSize: '0.85em',
-                        fontWeight: 600,
-                        marginBottom: '8px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px'
-                    }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-                            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-                            <line x1="12" y1="22.08" x2="12" y2="12"></line>
-                        </svg>
-                        Scoring Weights
-                    </div>
-                    <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(3, 1fr)',
-                        gap: '8px',
-                        fontSize: '0.8em'
-                    }}>
-                        <div style={{ color: '#bbb' }}>
-                            <span style={{ color: '#b19cd9', fontWeight: 600 }}>Elevation:</span> {weights.elevation}%
-                        </div>
-                        <div style={{ color: '#bbb' }}>
-                            <span style={{ color: '#ff9500', fontWeight: 600 }}>Prominence:</span> {weights.prominence}%
-                        </div>
-                        <div style={{ color: '#bbb' }}>
-                            <span style={{ color: '#00ff41', fontWeight: 600 }}>Fresnel:</span> {weights.fresnel}%
-                        </div>
-                    </div>
-                </div>
-            )}
+            <ScoringWeights weights={weights} isMinimized={isMinimized} />
 
             {/* Results List - Only show if not minimized or on desktop */}
             <div style={{ 
@@ -259,66 +163,12 @@ const OptimizationResultsPanel = ({ results, weights, onClose, onCenter, onReset
                 transition: 'opacity 0.2s'
             }}>
                 {results.map((node, index) => (
-                    <div 
+                    <ResultRow
                         key={index}
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            background: 'rgba(255, 255, 255, 0.03)',
-                            border: '1px solid rgba(255, 255, 255, 0.05)',
-                            borderRadius: '6px',
-                            padding: '12px',
-                            marginBottom: '8px',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease'
-                        }}
-                        onClick={() => onCenter(node)}
-                        onMouseOver={e => {
-                            e.currentTarget.style.background = 'rgba(0, 242, 255, 0.1)';
-                            e.currentTarget.style.borderColor = 'rgba(0, 242, 255, 0.3)';
-                        }}
-                        onMouseOut={e => {
-                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)';
-                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.05)';
-                        }}
-                    >
-                        {/* Rank Badge */}
-                        <div style={{
-                            width: '28px', height: '28px',
-                            borderRadius: '50%',
-                            background: 'rgba(0, 242, 255, 0.15)',
-                            border: '1px solid rgba(0, 242, 255, 0.5)',
-                            color: '#00f2ff',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontWeight: 'bold',
-                            marginRight: '12px',
-                            fontSize: '0.9em'
-                        }}>
-                            {index + 1}
-                        </div>
-
-                        {/* Info */}
-                        <div style={{ flexGrow: 1 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '2px' }}>
-                                <span style={{ color: '#00f2ff', fontWeight: 700, fontSize: '1.1em' }}>{node.score}</span>
-                                <span style={{ color: '#bbb', fontSize: '0.9em' }}>Score</span>
-                            </div>
-                            <div style={{ fontSize: '0.9em', color: '#ccc' }}>
-                                Elev: <span style={{ color: '#fff' }}>{Math.round(node.elevation)}m</span>
-                                {node.prominence > 5 && (
-                                    <span style={{ marginLeft: '8px', color: '#ffd700', fontSize: '0.85em' }}>
-                                        ★ Prom: {Math.round(node.prominence)}m
-                                    </span>
-                                )}
-                            </div>
-                            <div style={{ fontSize: '0.75em', color: '#666', fontFamily: 'monospace', marginTop: '2px' }}>
-                                {node.lat.toFixed(5)}, {node.lon.toFixed(5)}
-                            </div>
-                        </div>
-
-                        {/* Arrow */}
-                        <div style={{ color: '#444' }}>›</div>
-                    </div>
+                        node={node}
+                        index={index}
+                        onCenter={onCenter}
+                    />
                 ))}
             </div>
 
