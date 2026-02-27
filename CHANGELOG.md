@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.16.0] - 2026-02-26
+
+### Changed
+
+- **Major Codebase Refactoring**: Executed a comprehensive restructuring of both frontend and backend architectures to improve modularity, maintainability, and testing.
+  - **Frontend Core**: Decomposed large monoliths (`MapContainer.jsx`, `Sidebar.jsx`) into focused sub-components. Implemented Facade pattern for global context (`RFContext.jsx`).
+  - **Backend API**: Refactored `server.py` into modular API routers (`analysis.py`, `elevation.py`, `tasks.py`, `optimization.py`).
+  - **Math & Physics Modules**: Split `rfMath.js` into targeted utility files (`fspl.js`, `fresnel.js`, `lora.js`, `bullington.js`, etc.) while maintaining backward compatibility.
+  - **State & Hooks**: Standardized Web Worker communication with `useWorkerState.js` and abstracted tile fetching logic.
+  - **Data Processing**: Consolidated all CSV parsing, importing, and exporting logic into dedicated utilities.
+
+### Fixed
+
+- **Link Analysis UI**: Resolved a click-through bug where adjusting settings in the Link Analysis floating panel would inadvertently interact with the map underneath and place new nodes.
+
 ## [1.15.5] - 2026-02-15
 
 ### Fixed
