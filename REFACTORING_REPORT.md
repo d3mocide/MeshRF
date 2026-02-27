@@ -28,14 +28,14 @@ MeshRF is a full-stack RF propagation and link analysis application for LoRa mes
 |------|------|-------|----------|--------|
 | 1 | `src/components/Map/MapContainer.jsx` | 1173 | CRITICAL | **REFACTORED** |
 | 2 | `src/components/Layout/Sidebar.jsx` | 829 | CRITICAL | **REFACTORED** |
-| 3 | `src/components/Map/LinkAnalysisPanel.jsx` | 643 | HIGH | Pending |
-| 4 | `src/components/Map/UI/SiteAnalysisResultsPanel.jsx` | 609 | HIGH | Pending |
+| 3 | `src/components/Map/LinkAnalysisPanel.jsx` | 643 | HIGH | **REFACTORED** |
+| 4 | `src/components/Map/UI/SiteAnalysisResultsPanel.jsx` | 609 | HIGH | **REFACTORED** |
 | 5 | `src/components/Map/OptimizationLayer.jsx` | 517 | HIGH | Pending |
 | 6 | `rf-engine/server.py` | 475 | HIGH | **REFACTORED** |
 | 7 | `src/components/Map/UI/NodeManager.jsx` | 440 | MEDIUM | Pending |
 | 8 | `src/components/Map/OptimizationResultsPanel.jsx` | 435 | MEDIUM | Pending |
 | 9 | `src/components/Map/LinkLayer.jsx` | 429 | MEDIUM | Pending |
-| 10 | `rf-engine/tasks/viewshed.py` | 398 | MEDIUM | Pending |
+| 10 | `rf-engine/tasks/viewshed.py` | 398 | MEDIUM | **REFACTORED** |
 | 11 | `src/utils/rfMath.js` | 366 | LOW | Pending |
 | 12 | `src/components/Map/BatchNodesPanel.jsx` | 354 | MEDIUM | Pending |
 | 13 | `src/hooks/useViewshedTool.js` | 343 | MEDIUM | Pending |
@@ -89,54 +89,27 @@ MeshRF is a full-stack RF propagation and link analysis application for LoRa mes
 
 #### 3. `src/components/Map/LinkAnalysisPanel.jsx` — 643 lines
 
-**What it does**: Panel displaying point-to-point RF link analysis results — link budget, signal quality, Fresnel clearance, diffraction loss, model comparison, and drag/resize behaviour.
-
-**Logical sections**:
-1. Status color/text logic (lines 36–72)
-2. Responsive sizing logic (lines 74–91)
-3. Panel drag/resize handlers (lines 93–250)
-4. Help modals (lines 260–450)
-5. JSX render (lines 450–643)
-
-**Suggested split**:
-
-```
-src/components/Map/
-├── LinkAnalysisPanel.jsx            (~200 lines) — composition
-├── UI/
-│   ├── LinkStatusIndicator.jsx      (~80 lines)
-│   ├── LinkBudgetDisplay.jsx        (~100 lines)
-│   ├── FresnelZoneVisualization.jsx (~80 lines)
-│   └── ModelComparisonTable.jsx     (~120 lines)
-└── hooks/
-    ├── useDraggablePanel.js         (~100 lines)
-    └── useResponsiveSize.js         (~40 lines)
-```
+**Status**: Refactored (Phase 3)
+- **Extracted Components**:
+    - `UI/LinkStatusIndicator.jsx`: Status header.
+    - `UI/LinkBudgetDisplay.jsx`: Stats grid.
+    - `UI/ModelComparisonTable.jsx`: Help/Info overlay.
+- **Extracted Hook**:
+    - `hooks/useDraggablePanel.js`: Encapsulates drag and resize logic.
+- **Result**: `LinkAnalysisPanel.jsx` is now a clean composition (~200 lines).
 
 ---
 
 #### 4. `src/components/Map/UI/SiteAnalysisResultsPanel.jsx` — 609 lines
 
-**What it does**: Displays inter-node link matrix, mesh topology graph, and coverage redundancy analysis. Contains BFS path-finding algorithm inline.
-
-**Logical sections**:
-1. Helper functions and status colors (lines 1–75)
-2. BFS mesh path-finding algorithm (lines 38–110)
-3. Component state and hooks (lines 120–200)
-4. Link matrix table (lines 240–450)
-5. Topology graph visualization (lines 460–609)
-
-**Suggested split**:
-
-```
-src/components/Map/UI/
-├── SiteAnalysisResultsPanel.jsx  (~200 lines) — composition
-├── LinkMatrix.jsx                (~150 lines)
-├── TopologyGraph.jsx             (~150 lines)
-└── StatusBadge.jsx               (~40 lines)
-src/utils/
-└── meshTopology.js               (~100 lines) — BFS, connectivity algorithms
-```
+**Status**: Refactored (Phase 3)
+- **Extracted Components**:
+    - `UI/SiteAnalysis/SitesTab.jsx`: Site list and details.
+    - `UI/SiteAnalysis/LinksTab.jsx`: Link list and metrics.
+    - `UI/SiteAnalysis/TopologyTab.jsx`: Mesh topology and path analysis.
+- **Extracted Utils**:
+    - `utils/meshTopology.js`: BFS and connectivity algorithms.
+- **Result**: `SiteAnalysisResultsPanel.jsx` is now a clean orchestrator (~150 lines).
 
 ---
 
@@ -233,16 +206,10 @@ src/utils/
 
 #### 10. `rf-engine/tasks/viewshed.py` — 398 lines
 
-**What it does**: Celery task for batch viewshed computation — multi-node processing, site ranking, PNG image generation, and Redis storage.
-
-**Suggested split**:
-
-```
-rf-engine/
-├── tasks/viewshed.py             (~120 lines) — Celery task definition only
-├── processors/viewshed_proc.py   (~150 lines) — computation and ranking logic
-└── utils/image_utils.py          (~80 lines) — PNG encoding helpers
-```
+**Status**: Refactored (Phase 3)
+- **Extracted Logic**:
+    - `rf-engine/core/viewshed_proc.py`: Contains the heavy calculation, grid manipulation, and image generation logic.
+- **Result**: `tasks/viewshed.py` is now a thin Celery task wrapper (~40 lines).
 
 ---
 
@@ -321,14 +288,13 @@ src/hooks/
 
 ---
 
-### Phase 3 — Analysis Components
+### Phase 3 — Analysis Components (COMPLETED)
 
-5. **LinkAnalysisPanel.jsx** (643 → ~200 lines): Extract status, budget, Fresnel, and model comparison sub-components + `useDraggablePanel` hook.
-6. **SiteAnalysisResultsPanel.jsx** (609 → ~200 lines): Extract `LinkMatrix`, `TopologyGraph`, and move BFS algorithm to `meshTopology.js`.
-7. **viewshed.py** (398 → ~120 lines): Separate Celery task definition from processing logic and image utilities.
+5. **LinkAnalysisPanel.jsx** (643 → ~200 lines): Extracted `LinkStatusIndicator`, `LinkBudgetDisplay`, `ModelComparisonTable` and `useDraggablePanel` hook.
+6. **SiteAnalysisResultsPanel.jsx** (609 → ~200 lines): Extracted `SitesTab`, `LinksTab`, `TopologyTab` and moved topology logic to `meshTopology.js`.
+7. **viewshed.py** (398 → ~40 lines): Moved calculation logic to `rf-engine/core/viewshed_proc.py`.
 
-**Expected effort**: 2–3 days
-**Risk**: Medium — analysis panels have complex prop drilling.
+**Status**: Completed.
 
 ---
 
