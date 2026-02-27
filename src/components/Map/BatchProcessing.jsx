@@ -1,8 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useRF } from '../../context/RFContext';
 import { fetchElevationPath } from '../../utils/elevation';
 import { analyzeLinkProfile, calculateLinkBudget, calculateBullingtonDiffraction } from '../../utils/rfMath';
 import { DEVICE_PRESETS } from '../../data/presets';
+import { parseBatchNodesCSV } from '../../utils/csvParser';
 
 const BatchProcessing = () => {
     const {
@@ -124,32 +125,20 @@ const BatchProcessing = () => {
                             const reader = new FileReader();
                             reader.onload = (event) => {
                                 const text = event.target.result;
-                                const lines = text.split('\n');
-                                const newNodes = [];
-                                lines.forEach((line, idx) => {
-                                    if (idx === 0 && line.toLowerCase().includes('lat')) return; // Skip header
-                                    const parts = line.split(',');
-                                    if (parts.length >= 3) {
-                                        let name, lat, lng;
-                                        
-                                        // Simple heuristic: if parts[0] is number, it's lat.
-                                        if (!isNaN(parseFloat(parts[0]))) {
-                                                lat = parseFloat(parts[0]);
-                                                lng = parseFloat(parts[1]);
-                                                name = parts[2] || `Node ${idx}`;
-                                        } else {
-                                                name = parts[0];
-                                                lat = parseFloat(parts[1]);
-                                                lng = parseFloat(parts[2]);
-                                        }
-                                        
-                                        if (!isNaN(lat) && !isNaN(lng)) {
-                                            newNodes.push({ id: idx, name: name.trim(), lat, lng });
-                                        }
+                                try {
+                                    const newNodes = parseBatchNodesCSV(text);
+                                    if (newNodes.length > 0) {
+                                        setBatchNodes(newNodes);
+                                        setShowBatchPanel(true);
+                                        setBatchNotification({ type: 'success', message: `Successfully loaded ${newNodes.length} nodes.` });
+                                    } else {
+                                        setBatchNotification({ type: 'error', message: 'No valid nodes found in CSV.' });
                                     }
-                                });
-                                setBatchNodes(newNodes);
-                                setShowBatchPanel(true);
+                                } catch (err) {
+                                    console.error("CSV Parse Error", err);
+                                    setBatchNotification({ type: 'error', message: 'Failed to parse CSV file.' });
+                                }
+
                                 if (fileInputRef.current) {
                                     fileInputRef.current.value = '';
                                 }

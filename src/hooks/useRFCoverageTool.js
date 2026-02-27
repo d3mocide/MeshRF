@@ -191,12 +191,11 @@ export const useRFCoverageTool = (active) => {
 
             
             // Calculate stats
-            let minVal = Infinity, maxVal = -Infinity, validCount = 0;
+            let minVal = Infinity, maxVal = -Infinity;
             for(let v of resultArr) {
                 if(v > -999) { // Assuming -999 or similar is nodata
                     if(v < minVal) minVal = v;
                     if(v > maxVal) maxVal = v;
-                    validCount++;
                 }
             }
 

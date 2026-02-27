@@ -1,14 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useRF } from '../../../context/RFContext';
+import React, { useState, useRef } from 'react';
 import useSimulationStore from '../../../store/useSimulationStore';
-import { Download, Upload, FileSpreadsheet } from 'lucide-react';
+import { Upload } from 'lucide-react';
+import { parseNodeCSV, downloadNodeTemplate } from '../../../utils/csvImportExport';
+import NodeListTable from './NodeListTable';
+import AddNodeForm from './AddNodeForm';
 
 const NodeManager = ({ selectedLocation }) => {
-    const { units } = useRF();
-    const { nodes: simNodes, addNode, removeNode, startScan, isScanning, scanProgress, results: simResults, compositeOverlay, setNodes } = useSimulationStore();
-    const [manualLat, setManualLat] = useState('');
-    const [manualLon, setManualLon] = useState('');
+    const { nodes: simNodes, addNode, removeNode, startScan, isScanning, scanProgress, setNodes } = useSimulationStore();
     const fileInputRef = useRef(null);
+    const [isGreedy, setIsGreedy] = useState(false);
+    const [targetCount, setTargetCount] = useState(3);
 
     const handleCSVImport = async (e) => {
         const file = e.target.files[0];
@@ -17,77 +18,22 @@ const NodeManager = ({ selectedLocation }) => {
         const reader = new FileReader();
         reader.onload = (event) => {
             const text = event.target.result;
-            const lines = text.split('\n');
-            const headers = lines[0].toLowerCase().split(',').map(h => h.trim());
-            
-            const importedNodes = [];
-            for (let i = 1; i < lines.length; i++) {
-                const line = lines[i].trim();
-                if (!line) continue;
-                
-                const values = line.split(',').map(v => v.trim());
-                const node = {};
-                
-                headers.forEach((header, idx) => {
-                    const val = values[idx];
-                    if (header === 'lat') node.lat = parseFloat(val);
-                    else if (header === 'lon' || header === 'lng') node.lon = parseFloat(val);
-                    else if (header === 'name') node.name = val;
-                    else if (header === 'antenna_height') node.height = parseFloat(val);
-                    else if (header === 'tx_power') node.txPower = parseFloat(val);
-                });
-
-                if (!isNaN(node.lat) && !isNaN(node.lon)) {
-                    importedNodes.push({
-                        lat: node.lat,
-                        lon: node.lon,
-                        height: node.height || 10,
-                        name: node.name || `Imported Site ${i}`,
-                        txPower: node.txPower || 20
-                    });
-                }
-            }
-
+            const importedNodes = parseNodeCSV(text);
             if (importedNodes.length > 0) {
                 setNodes(importedNodes);
             }
         };
         reader.readAsText(file);
-        // Clear input so same file can be re-imported
         e.target.value = null;
     };
 
-    const downloadTemplate = () => {
-        const headers = 'name,lat,lon,antenna_height,tx_power\n';
-        const example = 'Site A,45.5152,-122.6784,15,20\nSite B,45.5230,-122.6670,10,20';
-        const blob = new Blob([headers + example], { type: 'text/csv' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'mesh-site-template.csv';
-        a.click();
-        URL.revokeObjectURL(url);
-    };
-    const [isGreedy, setIsGreedy] = useState(false);
-    const [targetCount, setTargetCount] = useState(3);
-
-    useEffect(() => {
-        if (selectedLocation) {
-            setManualLat(selectedLocation.lat.toFixed(6));
-            setManualLon(selectedLocation.lng.toFixed(6));
-        }
-    }, [selectedLocation]);
-
-    const handleAdd = () => {
-        if (!manualLat || !manualLon) return;
+    const handleAdd = (lat, lon) => {
         addNode({ 
-            lat: parseFloat(manualLat), 
-            lon: parseFloat(manualLon), 
+            lat,
+            lon,
             height: 10,
             name: `Node ${simNodes.length + 1}`
         });
-        setManualLat('');
-        setManualLon('');
     };
 
     const handleRunScan = () => {
@@ -112,63 +58,6 @@ const NodeManager = ({ selectedLocation }) => {
             borderBottom: '1px solid #00f2ff33',
             paddingBottom: '8px',
             flexShrink: 0
-        },
-        inputGroup: {
-            display: 'flex',
-            gap: '8px',
-            marginBottom: '16px'
-        },
-        input: {
-            width: '33%',
-            backgroundColor: 'rgba(0, 0, 0, 0.3)',
-            border: '1px solid #333',
-            borderRadius: '4px',
-            padding: '6px 8px',
-            fontSize: '0.875rem',
-            color: '#fff',
-            outline: 'none',
-            transition: 'border-color 0.2s',
-            fontFamily: 'monospace'
-        },
-        addButton: {
-            backgroundColor: 'rgba(0, 242, 255, 0.1)',
-            color: '#00f2ff',
-            padding: '4px 12px',
-            borderRadius: '4px',
-            fontSize: '0.75rem',
-            fontWeight: 'bold',
-            border: '1px solid #00f2ff66',
-            cursor: 'pointer',
-            textTransform: 'uppercase',
-            transition: 'all 0.2s'
-        },
-        nodeList: {
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px',
-            marginBottom: '16px',
-            maxHeight: '180px',
-            overflowY: 'auto',
-            paddingRight: '8px' // Space for scrollbar
-        },
-        nodeItem: {
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            backgroundColor: 'rgba(255, 255, 255, 0.03)',
-            padding: '8px',
-            borderRadius: '4px',
-            border: '1px solid #333'
-        },
-        removeBtn: {
-            color: '#ff4444', 
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: '1.1rem',
-            padding: '0 8px',
-            opacity: 0.8,
-            transition: 'opacity 0.2s'
         },
         actionButton: {
             width: '100%',
@@ -227,96 +116,15 @@ const NodeManager = ({ selectedLocation }) => {
             textDecoration: 'underline',
             cursor: 'pointer',
             marginLeft: '10px'
-        },
-        styleSheet: `
-            /* Theme number input spinners */
-            input[type=number]::-webkit-inner-spin-button,
-            input[type=number]::-webkit-outer-spin-button {
-                -webkit-appearance: none;
-                margin: 0;
-            }
-            
-            input[type=number] {
-                -moz-appearance: textfield;
-                position: relative;
-            }
-
-            /* Custom Arrows Replacement */
-            .input-with-arrows {
-                position: relative;
-                display: flex;
-                align-items: center;
-            }
-
-            .custom-arrows {
-                position: absolute;
-                right: 5px;
-                display: flex;
-                flex-direction: column;
-                gap: 2px;
-                pointer-events: none;
-                opacity: 0.6;
-            }
-
-            .arrow-up {
-                width: 0; 
-                height: 0; 
-                border-left: 4px solid transparent;
-                border-right: 4px solid transparent;
-                border-bottom: 5px solid #00f2ff;
-            }
-
-            .arrow-down {
-                width: 0; 
-                height: 0; 
-                border-left: 4px solid transparent;
-                border-right: 4px solid transparent;
-                border-top: 5px solid #00f2ff;
-            }
-        `
+        }
     };
 
     return (
         <div style={styles.container}>
             <div style={styles.header}>Multi-Site Analysis</div>
             
-            {/* Input Form */}
-            <div style={styles.inputGroup}>
-                <div className="input-with-arrows" style={{ width: '33%' }}>
-                    <input 
-                        type="number" 
-                        placeholder="Lat" 
-                        value={manualLat}
-                        onChange={(e) => setManualLat(e.target.value)}
-                        style={{ ...styles.input, width: '100%' }}
-                    />
-                    <div className="custom-arrows">
-                        <div className="arrow-up"></div>
-                        <div className="arrow-down"></div>
-                    </div>
-                </div>
-                <div className="input-with-arrows" style={{ width: '33%' }}>
-                    <input 
-                        type="number" 
-                        placeholder="Lon" 
-                        value={manualLon}
-                        onChange={(e) => setManualLon(e.target.value)}
-                        style={{ ...styles.input, width: '100%' }}
-                    />
-                    <div className="custom-arrows">
-                        <div className="arrow-up"></div>
-                        <div className="arrow-down"></div>
-                    </div>
-                </div>
-                <button 
-                    onClick={handleAdd}
-                    style={styles.addButton}
-                >
-                    Add
-                </button>
-            </div>
+            <AddNodeForm selectedLocation={selectedLocation} onAdd={handleAdd} />
 
-            {/* Bulk Import Section */}
             <div style={{ padding: '0 12px', marginBottom: '20px' }}>
                 <div style={styles.bulkHeader}>
                     <button 
@@ -335,7 +143,7 @@ const NodeManager = ({ selectedLocation }) => {
                         Bulk Import (CSV)
                     </button>
                     <div 
-                        onClick={downloadTemplate}
+                        onClick={downloadNodeTemplate}
                         style={styles.templateLink}
                     >
                         Get Template
@@ -350,26 +158,8 @@ const NodeManager = ({ selectedLocation }) => {
                 />
             </div>
 
-            {/* Node List */}
-            <div style={styles.nodeList} className="node-list-scroll">
-                {simNodes.length === 0 && (
-                    <div style={{textAlign: 'center', color: '#555', padding: '16px', border: '1px dashed #333', borderRadius: '4px', fontSize: '0.85em'}}>
-                        No candidate points added
-                    </div>
-                )}
-                
-                {simNodes.map((node) => (
-                    <div key={node.id} style={styles.nodeItem}>
-                        <div>
-                            <div style={{fontWeight: '600', fontSize: '0.8rem', color: '#fff'}}>{node.name}</div>
-                            <div style={{fontSize: '0.7rem', color: '#00f2ff', fontFamily: 'monospace'}}>{node.lat.toFixed(4)}, {node.lon.toFixed(4)}</div>
-                        </div>
-                        <button onClick={() => removeNode(node.id)} style={styles.removeBtn}>×</button>
-                    </div>
-                ))}
-            </div>
+            <NodeListTable nodes={simNodes} onRemove={removeNode} />
 
-            {/* Optimization Config */}
             <div style={styles.optContainer}>
                 <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: isGreedy ? '8px' : '0'}}>
                     <input 
@@ -405,7 +195,6 @@ const NodeManager = ({ selectedLocation }) => {
                 )}
             </div>
 
-            {/* Status & Actions */}
             {isScanning ? (
                 <div>
                     <div style={{fontSize: '0.8rem', color: '#00f2ff', fontFamily: 'monospace', marginBottom: '6px', display: 'flex', justifyContent: 'space-between'}}>
@@ -432,7 +221,6 @@ const NodeManager = ({ selectedLocation }) => {
                     Run Site Analysis
                 </button>
             )}
-            <style>{styles.styleSheet}</style>
         </div>
     );
 };

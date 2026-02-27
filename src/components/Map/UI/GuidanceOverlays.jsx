@@ -1,4 +1,5 @@
 import React from 'react';
+import { HELP_CONTENT } from '../../../data/helpContent';
 
 const GuidanceOverlays = ({ 
     toolMode, 
@@ -19,8 +20,8 @@ const GuidanceOverlays = ({
 
     const overlayStyle = {
         position: 'absolute',
-        top: isMobile ? '120px' : 'auto', // Mobile: Top to avoid panel collision
-        bottom: isMobile ? 'auto' : 'calc(40px + env(safe-area-inset-bottom))', // Desktop: Bottom
+        top: isMobile ? '120px' : 'auto',
+        bottom: isMobile ? 'auto' : 'calc(40px + env(safe-area-inset-bottom))',
         left: '50%',
         transform: 'translateX(-50%)',
         zIndex: 1000,
@@ -41,20 +42,21 @@ const GuidanceOverlays = ({
         maxWidth: '90vw'
     };
 
-    return (
-        <>
-        {/* Contextual Guidance Overlays */}
-        {toolMode === 'link' && nodes.length < 2 && (
-            <div style={{ ...overlayStyle, border: '1px solid #00ff4188' }}>
+    const renderHelpContent = (contentKey, isOpen, toggleHelp, titleColor = '#00f2ff') => {
+        const content = HELP_CONTENT[contentKey];
+        if (!content) return null;
+
+        return (
+            <div style={{width: '100%'}}>
                 <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '20px' }}>
-                    <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#00ff41' }}>
-                        Link Analysis Active
+                    <div style={{ fontSize: '14px', fontWeight: 'bold', color: titleColor }}>
+                        {content.title}
                     </div>
                     <div 
-                      onClick={() => setLinkHelp(!linkHelp)}
+                      onClick={() => toggleHelp(!isOpen)}
                       style={{ 
                           cursor: 'pointer', 
-                          color: '#00ff41', 
+                          color: titleColor,
                           fontSize: '14px', 
                           padding: '4px 8px',
                           background: 'rgba(255,255,255,0.05)',
@@ -65,22 +67,17 @@ const GuidanceOverlays = ({
                           gap: '6px'
                       }}
                     >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <line x1="12" y1="16" x2="12" y2="12"></line>
-                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                        </svg>
-                        <span>{linkHelp ? 'Hide' : 'Help'}</span>
+                        <span>{isOpen ? 'Hide' : 'Help'}</span>
                     </div>
                 </div>
                 
-                {!linkHelp && (
-                  <div style={{ fontSize: '14px', color: '#ccc' }}>
-                      {nodes.length === 0 ? "Click on the map to set Node A (Transmitter)" : "Click on the map to set Node B (Receiver)"}
+                {!isOpen && (
+                  <div style={{ fontSize: '14px', color: '#ccc', textAlign: 'center' }}>
+                      {content.summary}
                   </div>
                 )}
     
-                {linkHelp && (
+                {isOpen && (
                     <div style={{ 
                         marginTop: '12px', 
                         fontSize: '0.85em', 
@@ -91,224 +88,54 @@ const GuidanceOverlays = ({
                         wordBreak: 'break-word',
                         width: '100%'
                     }}>
-                        <div style={{ fontWeight: 'bold', color: '#00ff41', marginBottom: '4px' }}>Point-to-Point Analysis</div>
-                        <div style={{ marginBottom: '8px' }}>Simulate a direct radio link between two physical locations.</div>
+                        <div style={{ fontWeight: 'bold', color: titleColor, marginBottom: '4px' }}>{content.title}</div>
+                        <div style={{ marginBottom: '8px' }}>{content.summary}</div>
                         <ul style={{ paddingLeft: '18px', margin: 0, color: '#bbb' }}>
-                            <li><strong>Step 1:</strong> Select a starting point (Transmitter).</li>
-                            <li><strong>Step 2:</strong> Select an end point (Receiver).</li>
-                            <li><strong>Analysis:</strong> The engine calculates path loss, Fresnel obstruction, and RSSI.</li>
-                            <li style={{ marginTop: '4px', color: '#00ff41' }}><strong>Dynamic:</strong> Adjust Node A/B height, gain, or power in the sidebar to update the link live!</li>
+                            {content.steps.map((step, idx) => (
+                                <li key={idx}><strong>{step}</strong></li>
+                            ))}
+                            {content.extra && (
+                                <li style={{ marginTop: '4px', color: titleColor }}>{content.extra}</li>
+                            )}
                         </ul>
                     </div>
                 )}
+            </div>
+        );
+    };
+
+    return (
+        <>
+        {/* Contextual Guidance Overlays */}
+        {toolMode === 'link' && nodes.length < 2 && (
+            <div style={{ ...overlayStyle, border: '1px solid #00ff4188' }}>
+                {renderHelpContent('link', linkHelp, setLinkHelp, '#00ff41')}
             </div>
         )}
     
         {/* Elevation Scan (Auto Mode) */}
         {toolMode === 'optimize' && siteAnalysisMode === 'auto' && !optimizeState.loading && optimizeState.ghostNodes?.length === 0 && (
             <div style={overlayStyle}>
-                <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '20px' }}>
-                    <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#00f2ff' }}>
-                        Coverage Analysis Active
-                    </div>
-                    <div 
-                        onClick={() => setElevationHelp(!elevationHelp)}
-                        style={{ 
-                            cursor: 'pointer', 
-                            color: '#00f2ff', 
-                            fontSize: '14px', 
-                            padding: '4px 8px',
-                            background: 'rgba(255,255,255,0.05)',
-                            borderRadius: '4px',
-                            fontWeight: 'bold',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px'
-                        }}
-                    >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <line x1="12" y1="16" x2="12" y2="12"></line>
-                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                        </svg>
-                        <span>{elevationHelp ? 'Hide' : 'Help'}</span>
-                    </div>
-                </div>
-                
-                {!elevationHelp && (
-                    <div style={{ fontSize: '14px', color: '#ccc', textAlign: 'center' }}>
-                        {!optimizeState.center ? "Click map to set Center (TX)" : "Adjust radius -> Click again to Scan"}
-                    </div>
-                )}
-    
-                {elevationHelp && (
-                    <div style={{ 
-                        marginTop: '12px', 
-                        fontSize: '0.85em', 
-                        color: '#ddd', 
-                        borderTop: '1px solid rgba(255,255,255,0.1)', 
-                        paddingTop: '12px',
-                        whiteSpace: 'normal',
-                        wordBreak: 'break-word',
-                        width: '100%'
-                    }}>
-                        <div style={{ fontWeight: 'bold', color: '#00f2ff', marginBottom: '4px' }}>How to Scan</div>
-                        <div style={{ marginBottom: '8px' }}>identify optimal reception locations within a radius.</div>
-                        <ul style={{ paddingLeft: '18px', margin: 0, color: '#bbb' }}>
-                            <li><strong>Step 1:</strong> Click map to place your Transmitter (Center).</li>
-                            <li><strong>Step 2:</strong> Move mouse to define coverage radius. Click to Scan.</li>
-                            <li><strong>Result:</strong> Best reception spots are ranked by LOS and Signal Strength.</li>
-                        </ul>
-                    </div>
-                )}
+                {renderHelpContent('coverage', elevationHelp, setElevationHelp, '#00f2ff')}
             </div>
         )}
 
         {/* Multi-Site Manager (Manual Mode) */}
         {toolMode === 'optimize' && siteAnalysisMode === 'manual' && (
             <div style={overlayStyle}>
-                <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '20px' }}>
-                    <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#00f2ff' }}>
-                        Multi-Site Manager Active
-                    </div>
-                    <div 
-                        onClick={() => setElevationHelp(!elevationHelp)} // Reuse elevationHelp state for simplicity or add specific state
-                        style={{ 
-                            cursor: 'pointer', 
-                            color: '#00f2ff', 
-                            fontSize: '14px', 
-                            padding: '4px 8px',
-                            background: 'rgba(255,255,255,0.05)',
-                            borderRadius: '4px',
-                            fontWeight: 'bold',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px'
-                        }}
-                    >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <line x1="12" y1="16" x2="12" y2="12"></line>
-                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                        </svg>
-                        <span>{elevationHelp ? 'Hide' : 'Help'}</span>
-                    </div>
-                </div>
-                
-                {!elevationHelp && (
-                    <div style={{ fontSize: '14px', color: '#ccc', textAlign: 'center' }}>
-                         Click map to add candidate sites.
-                    </div>
-                )}
-    
-                {elevationHelp && (
-                    <div style={{ 
-                        marginTop: '12px', 
-                        fontSize: '0.85em', 
-                        color: '#ddd', 
-                        borderTop: '1px solid rgba(255,255,255,0.1)', 
-                        paddingTop: '12px',
-                        whiteSpace: 'normal',
-                        wordBreak: 'break-word',
-                        width: '100%'
-                    }}>
-                        <div style={{ fontWeight: 'bold', color: '#00f2ff', marginBottom: '4px' }}>Multi-Site Management</div>
-                        <div style={{ marginBottom: '8px' }}>Manually place and compare multiple potential locations.</div>
-                        <ul style={{ paddingLeft: '18px', margin: 0, color: '#bbb' }}>
-                            <li><strong>Add:</strong> Click "Add" in the panel or click the map to place a candidate marker.</li>
-                            <li><strong>Compare:</strong> Toggle candidates in the list to view their coverage stats.</li>
-                            <li><strong>Convert:</strong> Promote a candidate to a permanent primary node.</li>
-                        </ul>
-                    </div>
-                )}
+                {renderHelpContent('multiSite', elevationHelp, setElevationHelp, '#00f2ff')}
             </div>
         )}
     
         {((toolMode === 'viewshed' && !viewshedObserver) || (toolMode === 'rf_coverage' && !rfObserver)) && (
             <div style={{
-                // Match the style and positioning of other overlays
                 ...overlayStyle,
                 border: toolMode === 'viewshed' ? '1px solid #a855f788' : '1px solid #ff6b0088',
             }}>
-                <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '20px' }}>
-                    <div style={{ 
-                        fontSize: '14px', 
-                        fontWeight: 'bold', 
-                        color: toolMode === 'viewshed' ? '#a855f7' : '#ff6b00',
-                        whiteSpace: 'nowrap'
-                    }}>
-                        {toolMode === 'viewshed' ? 'Viewshed Active' : 'RF Simulator Active'}
-                    </div>
-                    <div 
-                      onClick={() => {
-                          const stateKey = toolMode === 'viewshed' ? 'showViewshedHelp' : 'showRFHelp';
-                          if (toolMode === 'viewshed') setViewshedHelp(!viewshedHelp);
-                          else setRFHelp(!rfHelp);
-                      }}
-                      style={{ 
-                          cursor: 'pointer', 
-                          color: toolMode === 'viewshed' ? '#a855f7' : '#ff6b00', 
-                          fontSize: '14px', 
-                          padding: '4px 8px',
-                          background: 'rgba(255,255,255,0.05)',
-                          borderRadius: '4px',
-                          fontWeight: 'bold',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px'
-                      }}
-                    >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <line x1="12" y1="16" x2="12" y2="12"></line>
-                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                        </svg>
-                        <span>{(toolMode === 'viewshed' ? viewshedHelp : rfHelp) ? 'Hide' : 'Help'}</span>
-                    </div>
-                </div>
-                
-                {!((toolMode === 'viewshed' ? viewshedHelp : rfHelp)) && (
-                  <div style={{ fontSize: '14px', color: '#ccc' }}>
-                      Click anywhere on the map to set the observer/transmitter point.
-                  </div>
-                )}
-    
-                {(toolMode === 'viewshed' ? viewshedHelp : rfHelp) && (
-                    <div style={{ 
-                        marginTop: '12px', 
-                        fontSize: '0.85em', 
-                        color: '#ddd', 
-                        borderTop: '1px solid rgba(255,255,255,0.1)', 
-                        paddingTop: '12px',
-                        whiteSpace: 'normal',
-                        wordBreak: 'break-word',
-                        width: '100%'
-                    }}>
-                        {toolMode === 'viewshed' ? (
-                            <>
-                                <div style={{ fontWeight: 'bold', color: '#a855f7', marginBottom: '4px' }}>Optical Line-of-Sight</div>
-                                <div style={{ marginBottom: '8px' }}>Shows what is physically visible from the chosen point based on 10m-30m terrain data.</div>
-                                <ul style={{ paddingLeft: '18px', margin: 0, color: '#bbb' }}>
-                                    <li><strong>Purple Area:</strong> Visible (LOS)</li>
-                                    <li><strong>Clear Area:</strong> Obstructed by terrain</li>
-                                    <li><strong>Draggable:</strong> Move the marker to instantly re-calculate.</li>
-                                </ul>
-                            </>
-                        ) : (
-                            <>
-                                <div style={{ fontWeight: 'bold', color: '#ff6b00', marginBottom: '4px' }}>RF Propagation Simulation</div>
-                                <div style={{ marginBottom: '8px' }}>Uses ITM / Geodetic physics to model radio coverage across terrain.</div>
-                                <ul style={{ paddingLeft: '18px', margin: 0, color: '#bbb' }}>
-                                    <li><strong>Colors:</strong> Hotter (Green/Yellow) is stronger signal. Purple is weak.</li>
-                                    <li><strong>Params:</strong> Uses TX Power, Gain, and Height from sidebar.</li>
-                                    <li><strong>Receiver:</strong> Adjust <strong>Receiver Height</strong> in the sidebar to simulate ground vs. mast reception.</li>
-                                    <li><strong>Updates:</strong> If you change hardware settings, click <strong>Update Calculation</strong> in the sidebar to refresh the map.</li>
-                                    <li><strong>Sensitivity:</strong> Dotted area shows coverage above your radio's floor.</li>
-                                </ul>
-                            </>
-                        )}
-                    </div>
-                )}
+                {toolMode === 'viewshed'
+                    ? renderHelpContent('viewshed', viewshedHelp, setViewshedHelp, '#a855f7')
+                    : renderHelpContent('rfSimulator', rfHelp, setRFHelp, '#ff6b00')
+                }
             </div>
         )}
         </>

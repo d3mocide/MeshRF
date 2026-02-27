@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, memo, useRef } from 'react';
 import PropTypes from 'prop-types';
-import { useMapEvents, Marker, Polyline, Popup, Polygon } from 'react-leaflet';
+import { useMapEvents, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import { useRF, GROUND_TYPES } from '../../context/RFContext';
 import { DEVICE_PRESETS } from '../../data/presets';
@@ -8,8 +8,9 @@ import { calculateLinkBudget, calculateFresnelRadius, calculateFresnelPolygon, a
 import { fetchElevationPath } from '../../utils/elevation';
 import { calculateLink } from '../../utils/rfService';
 import { useWasmITM } from '../../hooks/useWasmITM';
-import useThrottledCalculation from '../../hooks/useThrottledCalculation';
 import * as turf from '@turf/turf';
+import LinkPolyline from './UI/LinkPolyline';
+import { getLinkStyle } from '../../utils/linkStyleHelpers';
 
 // Custom Icons (DivIcon for efficiency)
 
@@ -213,9 +214,8 @@ const LinkLayer = ({ nodes, setNodes, linkStats, setLinkStats, setCoverageOverla
         }
 
         // 2. Hide Fresnel Zone (Too expensive to recalc real-time, so we hide it)
-        if (fresnelRef.current) {
-            fresnelRef.current.setStyle({ fillOpacity: 0, opacity: 0 });
-        }
+        // Note: With Component split, we can't ref directly into the child Polygon easily without forwarding refs,
+        // but hiding the line effectively hides context.
     };
 
     if (nodes.length < 2) {
@@ -290,39 +290,7 @@ const LinkLayer = ({ nodes, setNodes, linkStats, setLinkStats, setCoverageOverla
         );
     }
 
-    // Determine Color and Style
-    // We used to ignore obstruction if using Hata, but user wants consistent "Red" if physically obstructed
-    // regardless of whether the signal margin is technically good via diffraction.
-    
-    // Default to 'Excellent' Green
-    let finalColor = '#00ff41'; 
-    let isBadLink = false;
-
-    // 1. Obstruction Check (Overrides everything)
-    if (linkStats.isObstructed || (linkStats.linkQuality && linkStats.linkQuality.includes('Obstructed'))) {
-        finalColor = '#ff0000'; 
-        isBadLink = true;
-    } 
-    // 2. Margin-based Coloring (Matches LinkAnalysisPanel.jsx)
-    else {
-        const m = budget.margin - diffractionLoss; // Adjust margin by diffraction loss
-        if (m >= 10) {
-            finalColor = '#00ff41'; // Excellent +++
-        } else if (m >= 5) {
-            finalColor = '#00ff41'; // Good ++ (Same green for simplicity, or slightly different?) config uses same
-        } else if (m >= 0) {
-            finalColor = '#eeff00'; // Fair + (Yellow)
-        } else if (m >= -10) {
-            finalColor = '#ffbf00'; // Marginal -+ (Orange)
-            isBadLink = false; // It's marginal, but established. Not "broken".
-        } else {
-            finalColor = '#ff0000'; // No Signal - (Red)
-            isBadLink = true;
-        }
-    }
-    
-    // Dash line if it's a "Bad" link (No Signal or Physical Obstruction)
-    const dashStyle = isBadLink ? '10, 10' : null;
+    const { color: finalColor, dashArray, isBadLink } = getLinkStyle(budget, linkStats, diffractionLoss);
 
     const fresnelPolygon = calculateFresnelPolygon(p1, p2, freq);
 
@@ -378,31 +346,14 @@ const LinkLayer = ({ nodes, setNodes, linkStats, setLinkStats, setCoverageOverla
                 </Marker>
             )}
 
-            
-            {/* Direct Line of Sight */}
-            <Polyline 
+            <LinkPolyline
                 ref={polylineRef}
-                positions={[p1, p2]} 
-                pathOptions={{ 
-                    color: finalColor, 
-                    weight: 3, 
-                    dashArray: dashStyle 
-                }} 
+                positions={[p1, p2]}
+                color={finalColor}
+                dashArray={dashArray}
+                fresnelPolygon={fresnelPolygon}
+                isObstructed={linkStats.isObstructed}
             />
-
-            {/* Fresnel Zone Visualization (Polygon) */}
-            <Polygon 
-                ref={fresnelRef}
-                positions={fresnelPolygon}
-                pathOptions={{ 
-                    color: '#00f2ff', 
-                    fillOpacity: linkStats.isObstructed ? 0.3 : 0.1, 
-                    weight: 1, 
-                    dashArray: '5,5',
-                    fillColor: linkStats.isObstructed ? '#ff0000' : '#00f2ff'
-                }}
-            />
-
         </>
     );
 };
