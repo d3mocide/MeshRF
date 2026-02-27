@@ -7,7 +7,7 @@ const LinkStatusIndicator = ({ isMobile, isMinimized, setIsMinimized, statusColo
             {/* Mobile Grab Handle & Clickable Header Area */}
             {isMobile && (
                 <div
-                    onClick={() => setIsMinimized(!isMinimized)}
+                    onClickCapture={() => setIsMinimized(!isMinimized)}
                     style={{
                         padding: '12px 0 8px 0',
                         cursor: 'pointer',
@@ -48,7 +48,7 @@ const LinkStatusIndicator = ({ isMobile, isMinimized, setIsMinimized, statusColo
 
             {/* Header - Also clickable on mobile to toggle */}
             <div
-                onClick={isMobile ? () => setIsMinimized(!isMinimized) : undefined}
+                onClickCapture={isMobile ? () => setIsMinimized(!isMinimized) : undefined}
                 style={{
                     display: isMinimized && isMobile ? 'none' : 'flex',
                     justifyContent: 'space-between',

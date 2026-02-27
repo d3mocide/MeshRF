@@ -100,9 +100,9 @@ const ViewshedControl = ({ maxDist, setMaxDist, isCalculating, progress, onRecal
                     max="100000"
                     step="1000"
                     value={localDist}
-                    onChange={handleChange}
-                    onMouseUp={handleCommit}
-                    onTouchEnd={handleCommit}
+                    onChangeCapture={handleChange}
+                    onMouseUpCapture={handleCommit}
+                    onTouchEndCapture={handleCommit}
                     style={{
                         width: '100%',
                         cursor: isCalculating ? 'wait' : 'pointer',
@@ -114,7 +114,7 @@ const ViewshedControl = ({ maxDist, setMaxDist, isCalculating, progress, onRecal
 
             {/* Recalculate Button */}
             <button
-                onClick={onRecalculate}
+                onClickCapture={onRecalculate}
                 disabled={isCalculating}
                 style={{
                     width: '100%',

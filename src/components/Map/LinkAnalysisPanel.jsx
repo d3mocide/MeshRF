@@ -167,7 +167,7 @@ const LinkAnalysisPanel = ({
           {/* Custom Bottom-Left Resize Handle - Only on Desktop */}
           {!isMobile && (
             <div
-              onMouseDown={handleMouseDown}
+              onMouseDownCapture={handleMouseDown}
               style={{
                 position: "absolute",
                 bottom: 0,
@@ -271,7 +271,7 @@ const LinkAnalysisPanel = ({
 
                   {/* Model Info Tooltip */}
                   <div
-                    onClick={() => setShowModelHelp(!showModelHelp)}
+                    onClickCapture={() => setShowModelHelp(!showModelHelp)}
                     style={{
                       position: "relative",
                       cursor: "pointer",

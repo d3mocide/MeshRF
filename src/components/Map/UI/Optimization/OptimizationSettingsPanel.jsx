@@ -34,7 +34,7 @@ const OptimizationSettingsPanel = ({
                 cursor: 'default'
         }}>
             <div
-                onClick={(e) => {
+                onClickCapture={(e) => {
                     e.stopPropagation();
                     setShowSettings(!showSettings);
                 }}
@@ -53,12 +53,12 @@ const OptimizationSettingsPanel = ({
                             <input
                                 type="range" min="1000" max="20000" step="500"
                                 value={radiusMeters}
-                                onChange={e => {
+                                onChangeCapture={e => {
                                     const r = parseFloat(e.target.value);
                                     setRadiusMeters(r);
                                 }}
-                                onMouseUp={handleRecalculate}
-                                onTouchEnd={handleRecalculate}
+                                onMouseUpCapture={handleRecalculate}
+                                onTouchEndCapture={handleRecalculate}
                             />
                         </label>
                         )}
@@ -67,21 +67,21 @@ const OptimizationSettingsPanel = ({
                         <span>Refraction (K): {kFactor}</span>
                         <input
                             type="range" min="0.5" max="2.0" step="0.01"
-                            value={kFactor} onChange={e => setKFactor(parseFloat(e.target.value))}
+                            value={kFactor} onChangeCapture={e => setKFactor(parseFloat(e.target.value))}
                         />
                     </label>
                     <label style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <span>Clutter (m): {clutterHeight}</span>
                         <input
                             type="number" min="0" max="50" style={{ width: '50px', background: '#333', border: 'none', color: '#fff', padding: '2px' }}
-                            value={clutterHeight} onChange={e => setClutterHeight(parseFloat(e.target.value))}
+                            value={clutterHeight} onChangeCapture={e => setClutterHeight(parseFloat(e.target.value))}
                         />
                     </label>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', borderTop: '1px solid #333', paddingTop: '5px' }}>
                         <input
                             type="checkbox"
                             checked={showHeatmap}
-                            onChange={e => setShowHeatmap(e.target.checked)}
+                            onChangeCapture={e => setShowHeatmap(e.target.checked)}
                         />
                         <span>Show Heatmap Overlay</span>
                     </label>

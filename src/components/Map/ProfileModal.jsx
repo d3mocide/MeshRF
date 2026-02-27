@@ -56,16 +56,16 @@ const ProfileModal = ({ tx, rx, context, onClose }) => {
             background: 'rgba(0,0,0,0.8)', zIndex: 3000,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             backdropFilter: 'blur(5px)'
-        }} onClick={onClose}>
+        }} onClickCapture={onClose}>
             <div style={{
                 background: '#1a1a20', border: '1px solid #00f2ff',
                 borderRadius: '16px', padding: '24px',
                 width: '90%', maxWidth: '800px',
                 boxShadow: '0 0 30px rgba(0, 242, 255, 0.2)',
                 position: 'relative'
-            }} onClick={e => e.stopPropagation()}>
+            }} onClickCapture={e => e.stopPropagation()}>
                 
-                <button onClick={onClose} style={{
+                <button onClickCapture={onClose} style={{
                     position: 'absolute', top: '16px', right: '16px',
                     background: 'transparent', border: 'none', color: '#fff', fontSize: '24px', cursor: 'pointer'
                 }}>×</button>

@@ -64,7 +64,7 @@ const BatchNodesPanel = ({ nodes, selectedNodes = [], onCenter, onClear, onNodeS
                     fontSize: '14px',
                     fontWeight: 'bold'
                 }}
-            onClick={(e) => {
+            onClickCapture={(e) => {
                 e.stopPropagation();
                 setIsMinimized(false);
             }}
@@ -131,7 +131,7 @@ const BatchNodesPanel = ({ nodes, selectedNodes = [], onCenter, onClear, onNodeS
                         <li style={{ marginBottom: '10px' }}><strong>Navigate:</strong> Click a name to center the map on that site.</li>
                     </ul>
                     <button 
-                        onClick={() => setShowHelp(false)}
+                        onClickCapture={() => setShowHelp(false)}
                         style={{ 
                             marginTop: 'auto', 
                             width: '100%', 
@@ -155,7 +155,7 @@ const BatchNodesPanel = ({ nodes, selectedNodes = [], onCenter, onClear, onNodeS
                 </h3>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div 
-                        onClick={(e) => { e.stopPropagation(); setShowHelp(!showHelp); }}
+                        onClickCapture={(e) => { e.stopPropagation(); setShowHelp(!showHelp); }}
                         style={{ 
                             cursor: 'pointer', 
                             color: '#00f2ff', 
@@ -172,7 +172,7 @@ const BatchNodesPanel = ({ nodes, selectedNodes = [], onCenter, onClear, onNodeS
                         <span>Help</span>
                     </div>
                     <button 
-                        onClick={(e) => {
+                        onClickCapture={(e) => {
                             e.stopPropagation();
                             setIsMinimized(true);
                         }}
@@ -200,7 +200,7 @@ const BatchNodesPanel = ({ nodes, selectedNodes = [], onCenter, onClear, onNodeS
             />
             
             <button
-                onClick={(e) => {
+                onClickCapture={(e) => {
                     e.stopPropagation();
                     onClear();
                 }}

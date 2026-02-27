@@ -59,7 +59,7 @@ const OptimizationResultsPanel = ({ results, weights, onClose, onCenter, onReset
             {/* Mobile Grab Handle */}
             {isMobile && (
                 <div 
-                    onClick={() => setIsMinimized(!isMinimized)}
+                    onClickCapture={() => setIsMinimized(!isMinimized)}
                     style={{
                         padding: '8px 0',
                         cursor: 'pointer',
@@ -79,7 +79,7 @@ const OptimizationResultsPanel = ({ results, weights, onClose, onCenter, onReset
 
             {/* Header */}
             <div 
-                onClick={isMobile ? () => setIsMinimized(!isMinimized) : undefined}
+                onClickCapture={isMobile ? () => setIsMinimized(!isMinimized) : undefined}
                 style={{ 
                     display: 'flex', 
                     justifyContent: 'space-between', 
@@ -94,7 +94,7 @@ const OptimizationResultsPanel = ({ results, weights, onClose, onCenter, onReset
                 </h3>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div 
-                        onClick={(e) => { e.stopPropagation(); setShowHelp(!showHelp); }}
+                        onClickCapture={(e) => { e.stopPropagation(); setShowHelp(!showHelp); }}
                         style={{ 
                             cursor: 'pointer', 
                             color: '#00f2ff', 
@@ -117,7 +117,7 @@ const OptimizationResultsPanel = ({ results, weights, onClose, onCenter, onReset
                     </div>
                     {!isMobile && (
                         <button 
-                            onClick={(e) => {
+                            onClickCapture={(e) => {
                                 e.stopPropagation();
                                 setIsMinimized(!isMinimized);
                             }}
@@ -185,7 +185,7 @@ const OptimizationResultsPanel = ({ results, weights, onClose, onCenter, onReset
             }}>
                  <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
                     <button 
-                        onClick={() => {
+                        onClickCapture={() => {
                             import('../../utils/rfService').then(({ exportResults }) => {
                                 exportResults(results, 'csv');
                             });
@@ -203,7 +203,7 @@ const OptimizationResultsPanel = ({ results, weights, onClose, onCenter, onReset
                         Export CSV
                     </button>
                     <button 
-                        onClick={() => {
+                        onClickCapture={() => {
                             import('../../utils/rfService').then(({ exportResults }) => {
                                 exportResults(results, 'kml');
                             });
@@ -224,7 +224,7 @@ const OptimizationResultsPanel = ({ results, weights, onClose, onCenter, onReset
 
                  {/* Recalculate Button */}
                  <button 
-                    onClick={onRecalculate}
+                    onClickCapture={onRecalculate}
                     style={{
                         padding: '8px 24px', 
                         background: 'rgba(0, 242, 255, 0.15)', 
@@ -250,7 +250,7 @@ const OptimizationResultsPanel = ({ results, weights, onClose, onCenter, onReset
                  </button>
 
                  <button 
-                    onClick={onReset}
+                    onClickCapture={onReset}
                     style={{
                         padding: '8px 24px', 
                         background: 'rgba(255, 50, 50, 0.15)', 
