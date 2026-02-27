@@ -155,6 +155,7 @@ const NodeManager = ({ selectedLocation }) => {
                     style={{ display: 'none' }}
                     accept=".csv"
                     onChange={handleCSVImport}
+                    aria-label="Import CSV File"
                 />
             </div>
 
@@ -168,6 +169,7 @@ const NodeManager = ({ selectedLocation }) => {
                         onChange={(e) => setIsGreedy(e.target.checked)}
                         onClick={(e) => e.stopPropagation()}
                         style={{accentColor: '#00f2ff', cursor: 'pointer', width: '14px', height: '14px'}}
+                        aria-label="Toggle Greedy Optimization"
                     />
                     <span style={{color: isGreedy ? '#00f2ff' : '#888', fontSize: '0.8em', fontWeight: 'bold', textTransform: 'uppercase', cursor: 'pointer'}} onClick={() => setIsGreedy(!isGreedy)}>
                         Greedy Optimization
@@ -190,6 +192,7 @@ const NodeManager = ({ selectedLocation }) => {
                             style={{ 
                                 '--range-progress': `${simNodes.length > 1 ? ((targetCount - 1) / (simNodes.length - 1)) * 100 : 0}%` 
                             }}
+                            aria-label="Target Node Count"
                         />
                     </div>
                 )}
