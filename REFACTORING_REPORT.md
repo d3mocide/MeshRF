@@ -31,7 +31,7 @@ MeshRF is a full-stack RF propagation and link analysis application for LoRa mes
 | 3 | `src/components/Map/LinkAnalysisPanel.jsx` | 643 | HIGH | Pending |
 | 4 | `src/components/Map/UI/SiteAnalysisResultsPanel.jsx` | 609 | HIGH | Pending |
 | 5 | `src/components/Map/OptimizationLayer.jsx` | 517 | HIGH | Pending |
-| 6 | `rf-engine/server.py` | 475 | HIGH | Pending |
+| 6 | `rf-engine/server.py` | 475 | HIGH | **REFACTORED** |
 | 7 | `src/components/Map/UI/NodeManager.jsx` | 440 | MEDIUM | Pending |
 | 8 | `src/components/Map/OptimizationResultsPanel.jsx` | 435 | MEDIUM | Pending |
 | 9 | `src/components/Map/LinkLayer.jsx` | 429 | MEDIUM | Pending |
@@ -39,7 +39,7 @@ MeshRF is a full-stack RF propagation and link analysis application for LoRa mes
 | 11 | `src/utils/rfMath.js` | 366 | LOW | Pending |
 | 12 | `src/components/Map/BatchNodesPanel.jsx` | 354 | MEDIUM | Pending |
 | 13 | `src/hooks/useViewshedTool.js` | 343 | MEDIUM | Pending |
-| 14 | `rf-engine/tile_manager.py` | 334 | MEDIUM | Pending |
+| 14 | `rf-engine/tile_manager.py` | 334 | MEDIUM | **REFACTORED** |
 | 15 | `src/components/Map/BatchProcessing.jsx` | 321 | LOW | Pending |
 | 16 | `src/components/Map/UI/GuidanceOverlays.jsx` | 318 | LOW | Pending |
 | 17 | `src/context/RFContext.jsx` | 307 | MEDIUM | **REFACTORED** (Facade) |
@@ -161,27 +161,17 @@ src/components/Map/
 
 #### 6. `rf-engine/server.py` — 475 lines
 
-**What it does**: Main FastAPI application with endpoints for link analysis, elevation lookups, terrain tile serving, and async Celery task management.
+**Status**: Refactored (Phase 2)
+- **Extracted Routers**:
+    - `routers/analysis.py`: Link analysis endpoint.
+    - `routers/elevation.py`: Elevation and tile endpoints.
+    - `routers/tasks.py`: Async task management.
+    - `routers/optimization.py`: Optimization and export endpoints.
+- **Shared Dependencies**:
+    - `dependencies.py`: Handles Redis, TileManager, and Limiter instances.
+- **Result**: `server.py` is now a minimal entry point focusing on app setup and middleware.
 
-**Logical sections**:
-1. App setup, CORS, rate limiting (lines 1–45)
-2. Pydantic request models (lines 44–75)
-3. Link analysis endpoints (lines 71–137)
-4. Elevation endpoints (lines 138–228)
-5. Async task endpoints (lines 231–475)
-
-**Suggested split**:
-
-```
-rf-engine/
-├── server.py                  (~80 lines) — app creation, middleware, router registration
-├── schemas.py                 (~80 lines) — all Pydantic models (consolidate existing)
-├── dependencies.py            (~50 lines) — Redis, tile_manager DI
-└── routers/
-    ├── analysis.py            (~120 lines) — link analysis endpoints
-    ├── elevation.py           (~100 lines) — elevation + tile serving
-    └── tasks.py               (~150 lines) — async task submission and polling
-```
+---
 
 ---
 
@@ -258,17 +248,14 @@ rf-engine/
 
 #### 11. `rf-engine/tile_manager.py` — 334 lines
 
-**What it does**: High-performance elevation tile caching with request coalescing, thread pool management, Redis TTL caching, and interpolation.
+**Status**: Refactored (Phase 2)
+- **Extracted Components**:
+    - `rf-engine/cache_layer.py`: Encapsulates Redis caching operations.
+    - `rf-engine/elevation_client.py`: Manages OpenTopoData API interactions and retries.
+    - `rf-engine/grid_processor.py`: Contains static methods for grid interpolation and elevation extraction.
+- **Result**: `TileManager` is now a clean orchestrator class.
 
-**Suggested split**:
-
-```
-rf-engine/
-├── tile_manager.py           (~120 lines) — orchestration
-├── cache_layer.py            (~80 lines)  — Redis caching logic
-├── elevation_client.py       (~80 lines)  — API fetch implementation
-└── grid_processor.py         (~80 lines)  — interpolation and grid ops
-```
+---
 
 ---
 
@@ -323,15 +310,14 @@ src/hooks/
 
 ---
 
-### Phase 2 — Backend API Structure (NEXT)
+### Phase 2 — Backend API Structure (COMPLETED)
 
-Reorganize `server.py` into FastAPI routers — this is low-risk since Python imports are explicit and easy to verify:
+3. **server.py** (475 → ~80 lines): Refactored into `routers/` directory with `analysis.py`, `elevation.py`, `tasks.py`, `optimization.py`.
+4. **tile_manager.py** (334 → ~120 lines): Extracted `cache_layer.py`, `elevation_client.py`, `grid_processor.py`.
 
-3. **server.py** (475 → ~80 lines): Create `routers/` directory with `analysis.py`, `elevation.py`, `tasks.py`.
-4. **tile_manager.py** (334 → ~120 lines): Extract `cache_layer.py`, `elevation_client.py`, `grid_processor.py`.
+**Status**: Verified with tests and import checks.
 
-**Expected effort**: 1–2 days
-**Risk**: Low — FastAPI router pattern is well-defined.
+---
 
 ---
 
