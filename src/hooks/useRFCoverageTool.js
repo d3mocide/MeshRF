@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import createMeshRF from '../../libmeshrf/js/meshrf.js';
 import { stitchElevationGrids, transformObserverCoords, calculateStitchedBounds } from '../utils/tileStitcher';
+import { fetchAndDecodeTile } from '../utils/tileFetcher';
 
 /**
  * Hook for RF Coverage Analysis using Wasm ITM propagation model
@@ -65,36 +66,6 @@ export const useRFCoverageTool = (active) => {
       }).filter(t => t !== null);
     };
 
-    const fetchTile = async (tile) => {
-        const tileUrl = `/api/tiles/${tile.z}/${tile.x}/${tile.y}.png`;
-        try {
-            const response = await fetch(tileUrl);
-            if (!response.ok) return null;
-            const blob = await response.blob();
-            const img = await createImageBitmap(blob);
-            
-            const canvas = document.createElement('canvas');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0);
-            const imageData = ctx.getImageData(0, 0, img.width, img.height);
-            const pixels = imageData.data;
-            
-            const elevationData = new Float32Array(img.width * img.height);
-            for (let i = 0; i < img.width * img.height; i++) {
-                const r = pixels[i * 4];
-                const g = pixels[i * 4 + 1];
-                const b = pixels[i * 4 + 2];
-                elevationData[i] = -10000 + ((r * 256 * 256 + g * 256 + b) * 0.1);
-            }
-            return { elevation: elevationData, width: img.width, height: img.height, tile };
-        } catch (e) {
-            console.warn("Failed fetch", tile, e);
-            return null;
-        }
-    };
-
     /**
      * Run RF Coverage Analysis
      * @param {number} lat - Latitude of transmitter
@@ -125,7 +96,7 @@ export const useRFCoverageTool = (active) => {
             // 2. Fetch 3x3 Grid
 
             const targetTiles = getAdjacentTiles(centerTile);
-            const loadedTiles = await Promise.all(targetTiles.map(fetchTile));
+            const loadedTiles = await Promise.all(targetTiles.map(fetchAndDecodeTile));
             const validTiles = loadedTiles.filter(t => t !== null);
             
             if (validTiles.length === 0) throw new Error("No elevation data loaded");

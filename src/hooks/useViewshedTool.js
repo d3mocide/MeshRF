@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { stitchElevationGrids, transformObserverCoords, calculateStitchedBounds } from '../utils/tileStitcher';
+import { fetchAndDecodeTile } from '../utils/tileFetcher';
 import { useWorkerState } from './useWorkerState';
 
 // Singleton Worker instance
@@ -92,46 +93,6 @@ export function useViewshedTool(active) {
           }
       }
       return { tiles, radiusTiles };
-    };
-
-    const fetchAndDecodeTile = async (tile) => {
-        const tileUrl = `/api/tiles/${tile.z}/${tile.x}/${tile.y}.png`;
-        try {
-            const img = document.createElement('img');
-            img.crossOrigin = "Anonymous";
-            img.src = tileUrl;
-            await new Promise((resolve, reject) => {
-                img.onload = resolve;
-                img.onerror = reject;
-            });
-            
-            const canvas = document.createElement('canvas');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0);
-            
-            const imageData = ctx.getImageData(0, 0, img.width, img.height);
-            const pixels = imageData.data;
-            const floatData = new Float32Array(img.width * img.height);
-            
-            for (let i = 0; i < pixels.length; i += 4) {
-                const r = pixels[i];
-                const g = pixels[i + 1];
-                const b = pixels[i + 2];
-                floatData[i / 4] = -10000 + ((r * 256 * 256 + g * 256 + b) * 0.1);
-            }
-            
-            return {
-                elevation: floatData,
-                width: img.width,
-                height: img.height,
-                tile
-            };
-        } catch (err) {
-            console.warn(`Failed to fetch tile ${tile.x}/${tile.y}`, err);
-            return null;
-        }
     };
 
     const runAnalysis = useCallback(async (latOrObserver, lonOrMaxDist, height = 2.0, maxDist = 25000) => {
