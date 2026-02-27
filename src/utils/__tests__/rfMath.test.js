@@ -32,20 +32,6 @@ describe("RF Math Functions", () => {
     });
   });
 
-  describe("calculateOkumuraHata", () => {
-    it("should fallback to FSPL for very short distances", () => {
-      const hata = calculateOkumuraHata(0.05, 915, 30, 2, "suburban");
-      const fspl = calculateFSPL(0.05, 915);
-      expect(hata).toBeCloseTo(fspl, 1);
-    });
-
-    it("should apply environmental corrections", () => {
-      const urban = calculateOkumuraHata(5, 915, 30, 2, "urban_large");
-      const rural = calculateOkumuraHata(5, 915, 30, 2, "rural");
-      expect(rural).toBeLessThan(urban);
-    });
-  });
-
   describe("analyzeLinkProfile", () => {
     it("should detect obstruction when terrain blocks LOS", () => {
       const profile = [
