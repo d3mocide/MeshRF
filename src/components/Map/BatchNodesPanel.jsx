@@ -9,6 +9,7 @@ const BatchNodesPanel = ({ nodes, selectedNodes = [], onCenter, onClear, onNodeS
     const panelRef = useRef(null);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         if (forceMinimized) setIsMinimized(true);
     }, [forceMinimized]);
 

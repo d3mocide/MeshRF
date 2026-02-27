@@ -69,6 +69,7 @@ const LinkLayer = ({ nodes, setNodes, linkStats, setLinkStats, setCoverageOverla
         });
     };
 
+    // eslint-disable-next-line react-hooks/preserve-manual-memoization
     const runAnalysis = useCallback((p1, p2) => {
         if (!p1 || !p2) return;
         
@@ -138,7 +139,7 @@ const LinkLayer = ({ nodes, setNodes, linkStats, setLinkStats, setCoverageOverla
             console.error("Link Analysis Failed", err);
             setLinkStats(prev => ({ ...prev, loading: false, isObstructed: false, minClearance: 0 }));
         });
-    }, [propagationSettings, itmReady, calculateITM, groundType, climate]);
+    }, [propagationSettings, itmReady, calculateITM, groundType, climate, setLinkStats]);
 
     useEffect(() => {
         if (nodes.length === 2) {

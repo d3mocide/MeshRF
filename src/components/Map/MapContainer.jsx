@@ -148,6 +148,7 @@ const MapComponent = () => {
   // Auto-show results
   useEffect(() => {
     if (simResults && simResults.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShowAnalysisResults(true);
     }
   }, [simResults]);

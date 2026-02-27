@@ -77,6 +77,7 @@ export const HardwareProvider = ({ children }) => {
     const cableLoss = parseFloat(cableLossVal.toFixed(2));
     const erp = (txPower + antennaGain - cableLoss).toFixed(1);
 
+    // eslint-disable-next-line react-hooks/preserve-manual-memoization
     const value = useMemo(() => ({
         nodeConfigs, setNodeConfigs,
         editMode, setEditMode,
@@ -98,6 +99,7 @@ export const HardwareProvider = ({ children }) => {
 
         // Helpers
         getAntennaHeightMeters: () => parseFloat(antennaHeight) || 0,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }), [nodeConfigs, editMode, batchNodes, selectedDevice, selectedAntenna, txPower, antennaHeight, antennaGain, selectedCableType, cableLength, erp, cableLoss]);
 
     return <HardwareContext.Provider value={value}>{children}</HardwareContext.Provider>;
