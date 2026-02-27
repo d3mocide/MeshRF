@@ -78,6 +78,6 @@ class TestOptimizationService:
         )
         
         service.check_fresnel_clearance.assert_called_with(
-            0, 0, 20.0, rx_list, 433.0
+            0, 0, 20.0, rx_list, 433.0, k_factor=1.333, clutter_height=0.0
         )
         assert metrics['fresnel'] == 0.5
