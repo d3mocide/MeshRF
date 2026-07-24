@@ -1,6 +1,6 @@
 # MeshRF Propagation Engine Roadmap
 
-**Last Updated:** 2026-02-09
+**Last Updated:** 2026-07-24
 
 ---
 
@@ -60,7 +60,7 @@ Allow CSV import to include optional per-node columns: antenna height, device ty
 
 ### P4-1: Server-Side ITM via itmlogic
 
-`itmlogic` is listed in `requirements.txt` but never imported. Implement as a true Python ITM fallback for server-side batch processing and environments where WASM isn't available. Enables Celery workers to run ITM asynchronously.
+`itmlogic` was previously listed in `requirements.txt` but never imported, so it was dropped as a dead dependency (2026-07). Re-add it when this is implemented as a true Python ITM fallback for server-side batch processing and environments where WASM isn't available. Enables Celery workers to run ITM asynchronously.
 
 **Files:** `rf-engine/rf_physics.py`, `rf-engine/tasks/`
 
@@ -151,20 +151,12 @@ The ITM supports time/location/situation variability percentages (currently fixe
 
 #### P5-7: Export Capabilities (Completed)
 
-**Features:** Multi-Site Analysis now computes unique coverage per site and marginal gain contribution.
-
-#### P5-6: Pareto Frontier Analysis
-
-**Problem:** Single score hides trade-offs.
-**Solution:** Compute and visualize the Pareto frontier for multi-objective optimization (Elevation vs Coverage vs Access).
-
-#### P5-7: Export Capabilities (Completed)
-
 **Status:** ✅ Implemented in Phase 5 (CSV/KML).
 
-## Upcoming Features (v1.16.0)
+## Recently Completed
 
-### P6-1: Per-Node Coverage Visualization
+### P6-1: Per-Node Coverage Visualization (Completed)
 
-**Problem:** Multi-Site analysis shows a merged composite, making it hard to distinguish which node covers which area.
-**Solution:** Refactor backend to return individual coverage masks or labeled bitmasks. Render individual node boundaries (dashed lines) or distinct color layers in the frontend to visualize exact per-node coverage.
+**Status:** ✅ Implemented 2026-07-24.
+**Problem:** Multi-Site analysis showed a single merged composite, making it hard to distinguish which node covers which area.
+**Solution:** Backend (`rf-engine/core/viewshed_proc.py`) assigns each selected node a distinct evenly-spaced hue and renders per-node coverage as alpha-composited color layers instead of one flat overlay -- overlapping nodes blend naturally. Each result carries a `color` field. Frontend matches simulation node markers (`OptimizationLayerManager.jsx`) and the Sites results table (`SitesTab.jsx`) to the same color so a node's map marker, popup, and coverage patch are visually tied together.
