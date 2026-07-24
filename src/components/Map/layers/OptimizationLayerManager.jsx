@@ -87,37 +87,42 @@ const OptimizationLayerManager = ({
             )}
 
             {/* Simulation Nodes Rendering */}
-            {(active || simNodes.length > 0) && simNodes.map((node) => (
-                <Marker
-                    key={`sim-${node.id}`}
-                    position={[node.lat, node.lon]}
-                    icon={L.divIcon({
-                        className: 'sim-node-icon',
-                        html: `<div style="
-                            background-color: #00f2ff;
-                            width: 14px; height: 14px;
-                            border-radius: 50%; opacity: 1;
-                            border: 2px solid white;
-                            box-shadow: 0 0 10px #00f2ff;
-                            display: flex; align-items: center; justify-content: center;
-                            font-size: 10px; font-weight: bold; color: black;
-                        ">${simResults ? '✓' : ''}</div>`,
-                        iconSize: [14, 14],
-                        iconAnchor: [7, 7],
-                    })}
-                >
-                    <Popup>
-                        <strong>{node.name}</strong><br/>
-                        Lat: {node.lat.toFixed(5)}<br/>
-                        Lon: {node.lon.toFixed(5)}<br/>
-                        {simResults && Array.isArray(simResults) && (() => {
-                            const res = simResults.find(r => Math.abs(r.lat - node.lat) < 0.0001 && Math.abs(r.lon - node.lon) < 0.0001);
-                            if (!res) return null;
-                            return (
+            {(active || simNodes.length > 0) && simNodes.map((node) => {
+                // Match this map node to its scan result so the marker can be
+                // colored to match its coverage patch in the composite overlay.
+                const res = simResults && Array.isArray(simResults)
+                    ? simResults.find(r => Math.abs(r.lat - node.lat) < 0.0001 && Math.abs(r.lon - node.lon) < 0.0001)
+                    : null;
+                const nodeColor = res?.color || '#00f2ff';
+
+                return (
+                    <Marker
+                        key={`sim-${node.id}`}
+                        position={[node.lat, node.lon]}
+                        icon={L.divIcon({
+                            className: 'sim-node-icon',
+                            html: `<div style="
+                                background-color: ${nodeColor};
+                                width: 14px; height: 14px;
+                                border-radius: 50%; opacity: 1;
+                                border: 2px solid white;
+                                box-shadow: 0 0 10px ${nodeColor};
+                                display: flex; align-items: center; justify-content: center;
+                                font-size: 10px; font-weight: bold; color: black;
+                            ">${simResults ? '✓' : ''}</div>`,
+                            iconSize: [14, 14],
+                            iconAnchor: [7, 7],
+                        })}
+                    >
+                        <Popup>
+                            <strong>{node.name}</strong><br/>
+                            Lat: {node.lat.toFixed(5)}<br/>
+                            Lon: {node.lon.toFixed(5)}<br/>
+                            {res && (
                                 <div style={{ marginTop: '8px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '8px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                         <span style={{ color: '#888' }}>Elevation:</span>
-                                        <span style={{ color: '#00f2ff', fontWeight: 'bold' }}>
+                                        <span style={{ color: nodeColor, fontWeight: 'bold' }}>
                                             {units === 'imperial'
                                                 ? `${(res.elevation * 3.28084).toFixed(1)} ft`
                                                 : `${res.elevation} m`}
@@ -125,21 +130,21 @@ const OptimizationLayerManager = ({
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                         <span style={{ color: '#888' }}>Coverage:</span>
-                                        <span style={{ color: '#00f2ff', fontWeight: 'bold' }}>
+                                        <span style={{ color: nodeColor, fontWeight: 'bold' }}>
                                             {units === 'imperial'
                                                 ? `${(res.coverage_area_km2 * 0.386102).toFixed(2)} mi²`
                                                 : `${res.coverage_area_km2} km²`}
                                         </span>
                                     </div>
                                     <div style={{ fontSize: '0.8em', color: '#666', marginTop: '4px' }}>
-                                        ({res.coverage_points} visible points)
+                                        {res.unique_coverage_pct}% unique coverage
                                     </div>
                                 </div>
-                            );
-                        })()}
-                    </Popup>
-                </Marker>
-            ))}
+                            )}
+                        </Popup>
+                    </Marker>
+                );
+            })}
 
             {/* Inter-node link quality polylines */}
             {simResults && interNodeLinks && interNodeLinks.map((link, i) => {
