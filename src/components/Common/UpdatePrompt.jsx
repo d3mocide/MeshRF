@@ -4,10 +4,10 @@ import { useRegisterSW } from 'virtual:pwa-register/react';
 const UpdatePrompt = () => {
   // Defensive destructuring to prevent crash if hook returns unexpected structure
   const sw = useRegisterSW({
-    onRegistered(r) {
+    onRegistered() {
 
     },
-    onRegisterError(error) {
+    onRegisterError() {
 
     },
   });

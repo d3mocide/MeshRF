@@ -17,7 +17,7 @@ const BatchNodesList = ({ nodes, selectedNodes, onNodeSelect, onCenter }) => {
                 e.stopPropagation();
             }}
         >
-            {nodes.map((node, index) => {
+            {nodes.map((node) => {
                 const selection = selectedNodes?.find(s => s?.id === node.id);
                 const isSelected = !!selection;
                 const role = selection?.role;

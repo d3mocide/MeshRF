@@ -6,7 +6,7 @@ import OptimizationHelp from './UI/Optimization/OptimizationHelp';
 import ScoringWeights from './UI/Optimization/ScoringWeights';
 import ResultRow from './UI/Optimization/ResultRow';
 
-const OptimizationResultsPanel = ({ results, weights, onClose, onCenter, onReset, onRecalculate }) => {
+const OptimizationResultsPanel = ({ results, weights, onCenter, onReset, onRecalculate }) => {
     const [isMinimized, setIsMinimized] = useState(false);
     const [showHelp, setShowHelp] = useState(false);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);

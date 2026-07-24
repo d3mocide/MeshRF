@@ -24,9 +24,13 @@ const Sidebar = () => {
         setSections(prev => ({ ...prev, [section]: !prev[section] }));
     };
 
-    // Auto-close sidebar on mobile
+    // Auto-close sidebar on mobile.
+    // Intentionally keyed only on isMobile -- this must NOT re-run when
+    // sidebarIsOpen changes, or manually opening the sidebar on mobile would
+    // immediately trigger this effect and close it again.
     useEffect(() => {
         if (isMobile && sidebarIsOpen) setSidebarIsOpen(false);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isMobile]); // Trigger on mount or mobile switch
 
     return (

@@ -11,7 +11,7 @@ const SiteAnalysisResultsPanel = ({
     results,
     interNodeLinks,
     totalUniqueCoverageKm2,
-    onClose, // Kept for API compatibility, though not used in UI currently
+    onClose: _onClose, // Kept for API compatibility, though not used in UI currently
     onCenter,
     onClear,
     onRunNew,

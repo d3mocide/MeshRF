@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useCallback, memo, useRef } from 'react';
+import React, { useEffect, useCallback, memo, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { useMapEvents, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import { useRF, GROUND_TYPES } from '../../context/RFContext';
 import { DEVICE_PRESETS } from '../../data/presets';
-import { calculateLinkBudget, calculateFresnelRadius, calculateFresnelPolygon, analyzeLinkProfile, calculateBullingtonDiffraction } from '../../utils/rfMath';
+import { calculateLinkBudget, calculateFresnelPolygon, analyzeLinkProfile, calculateBullingtonDiffraction } from '../../utils/rfMath';
 import { fetchElevationPath } from '../../utils/elevation';
 import { calculateLink } from '../../utils/rfService';
 import { useWasmITM } from '../../hooks/useWasmITM';
@@ -12,26 +12,9 @@ import * as turf from '@turf/turf';
 import LinkPolyline from './UI/LinkPolyline';
 import { getLinkStyle } from '../../utils/linkStyleHelpers';
 
-// Custom Icons (DivIcon for efficiency)
-
-const txIcon = L.divIcon({
-    className: 'custom-icon-tx',
-    html: `<div style="background-color: #00ff41; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px rgba(0, 255, 65, 0.8);"></div>`,
-    iconSize: [20, 20],
-    iconAnchor: [10, 10]
-});
-
-const rxIcon = L.divIcon({
-    className: 'custom-icon-rx',
-    html: `<div style="background-color: #ff0000; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px rgba(255, 0, 0, 0.8);"></div>`,
-    iconSize: [20, 20],
-    iconAnchor: [10, 10]
-});
-
-const LinkLayer = ({ nodes, setNodes, linkStats, setLinkStats, setCoverageOverlay, active = true, locked = false, propagationSettings, onManualClick }) => {
-    const { 
-        txPower: proxyTx, antennaGain: proxyGain, // we ignore proxies for calc
-        freq, sf, bw, cableLoss, antennaHeight,
+const LinkLayer = ({ nodes, setNodes, linkStats, setLinkStats, active = true, locked = false, propagationSettings, onManualClick }) => {
+    const {
+        freq, sf, bw,
         kFactor, clutterHeight, recalcTimestamp,
         editMode, setEditMode, nodeConfigs, fadeMargin,
         groundType, climate
@@ -41,7 +24,6 @@ const LinkLayer = ({ nodes, setNodes, linkStats, setLinkStats, setCoverageOverla
 
     // Refs for direct visual manipulation
     const polylineRef = useRef(null);
-    const fresnelRef = useRef(null);
     const markerRefA = useRef(null);
     const markerRefB = useRef(null);
 
@@ -140,10 +122,17 @@ const LinkLayer = ({ nodes, setNodes, linkStats, setLinkStats, setCoverageOverla
         });
     }, [propagationSettings, itmReady, calculateITM, groundType, climate, setLinkStats]);
 
+    // Intentionally excludes `runAnalysis` from deps: environment settings
+    // (ground type, climate, etc.) are applied via the "Update Calculation"
+    // button (see RadioContext.triggerRecalc / recalcTimestamp), not
+    // automatically on every keystroke. When recalcTimestamp bumps, this
+    // effect re-runs with whatever runAnalysis closure the latest render
+    // produced, which already reflects current environment settings.
     useEffect(() => {
         if (nodes.length === 2) {
              runAnalysis(nodes[0], nodes[1]);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [nodes, recalcTimestamp, propagationSettings]); // Trigger on model change
 
     useMapEvents({
@@ -260,8 +249,6 @@ const LinkLayer = ({ nodes, setNodes, linkStats, setLinkStats, setCoverageOverla
         { units: 'kilometers' }
     );
 
-    const fresnelRadius = calculateFresnelRadius(distance, freq);
-    
     // Calculate Budget using explicit Node A (TX) -> Node B (RX) logic
     const configA = nodeConfigs.A;
     const configB = nodeConfigs.B;
@@ -290,7 +277,7 @@ const LinkLayer = ({ nodes, setNodes, linkStats, setLinkStats, setCoverageOverla
         );
     }
 
-    const { color: finalColor, dashArray, isBadLink } = getLinkStyle(budget, linkStats, diffractionLoss);
+    const { color: finalColor, dashArray } = getLinkStyle(budget, linkStats, diffractionLoss);
 
     const fresnelPolygon = calculateFresnelPolygon(p1, p2, freq);
 
@@ -367,7 +354,6 @@ LinkLayer.propTypes = {
     setNodes: PropTypes.func.isRequired,
     linkStats: PropTypes.object.isRequired,
     setLinkStats: PropTypes.func.isRequired,
-    setCoverageOverlay: PropTypes.func,
     active: PropTypes.bool,
     locked: PropTypes.bool,
     onManualClick: PropTypes.func,

@@ -5,13 +5,11 @@ import {
   ZoomControl,
   Marker,
   Popup,
-  ImageOverlay,
   useMap
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { ScatterplotLayer } from "@deck.gl/layers";
-import * as turf from "@turf/turf";
 
 // Context & Stores
 import { useRF } from "../../context/RFContext";
@@ -74,8 +72,7 @@ const MapComponent = () => {
     units,
     viewshedMaxDist, setViewshedMaxDist,
     batchNodes, setBatchNodes, showBatchPanel, setShowBatchPanel,
-    setEditMode,
-    nodeConfigs
+    setEditMode
   } = useRF();
 
   const {
@@ -128,9 +125,8 @@ const MapComponent = () => {
   const {
       nodes, setNodes,
       linkStats, setLinkStats,
-      coverageOverlay, setCoverageOverlay,
       isLinkLocked, setIsLinkLocked,
-      selectedBatchNodes, setSelectedBatchNodes,
+      selectedBatchNodes,
       propagationSettings, setPropagationSettings,
       budget, distance,
       handleNodeSelect,
@@ -306,7 +302,6 @@ const MapComponent = () => {
             locked={isLinkLocked}
             nodes={nodes} setNodes={setNodes}
             linkStats={linkStats} setLinkStats={setLinkStats}
-            coverageOverlay={coverageOverlay} setCoverageOverlay={setCoverageOverlay}
             propagationSettings={propagationSettings} setPropagationSettings={setPropagationSettings}
             budget={budget} distance={distance} units={units}
             onManualClick={(e) => handleNodeSelect({ lat: e.latlng.lat, lng: e.latlng.lng }, false)}
