@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Per-Node Coverage Visualization (P6-1)**: Multi-Site Analysis composite overlay now renders each selected node's coverage as a distinct color instead of one flat cyan mask, so overlapping/redundant sites are visually distinguishable. Simulation node markers and the Sites results table are color-matched to the same coverage patches.
+
+### Changed
+
+- **Backend**: Refactored `rf-engine/core/viewshed_proc.py` to share a single pixel-projection helper instead of three near-identical copies of the same coordinate-mapping logic.
+- Added `eslint-plugin-react`'s `jsx-uses-vars` rule to `eslint.config.js` -- the previous config had no way to recognize JSX component usage, producing ~100 false-positive "unused import" warnings that were masking real ones.
+- Added a `ci.yml` GitHub Actions workflow that runs frontend lint/test/build and the `rf-engine` pytest suite on every push and PR to `dev`/`main`.
+
+### Fixed
+
+- Dead `elevation` variable, unused caught SSE-parse error, and stale `eslint-disable` directives now flagged/cleaned up now that lint output is trustworthy again.
+- `ROADMAP.md` had a duplicated P5-6/P5-7 section from a copy-paste error.
+- `README.md` linked to `Documentation/pwa-guide.md`, which never existed; the guide has been written.
+- Resolved all production `npm audit` findings (critical `fast-xml-parser` via `@loaders.gl/xml`, high-severity `lodash`, moderate `protocol-buffers-schema`) and the dev-tooling findings (`vite`, `vitest`, `brace-expansion`).
+
+### Removed
+
+- Dropped `itmlogic` from `rf-engine/requirements.txt` -- it was declared but never imported (tracked as ROADMAP P4-1; re-add when that's implemented).
+
 ## [1.16.1] - 2026-02-26
 
 ### Fixed
