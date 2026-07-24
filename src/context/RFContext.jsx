@@ -25,12 +25,15 @@ const RFContent = ({ children }) => {
     const radio = useRadio();
     const hardware = useHardware();
 
-    // Glue Logic: Update TX Power when Radio Preset changes (if preset has power)
+    // Glue Logic: Update TX Power when Radio Preset changes (if preset has power).
+    // Intentionally keyed only on the preset id -- including `hardware` would
+    // re-fire this effect on every hardware update, including the one it just made.
     useEffect(() => {
         const preset = RADIO_PRESETS[radio.selectedRadioPreset];
         if (radio.selectedRadioPreset !== "CUSTOM" && preset?.power) {
              hardware.updateConfig("txPower", preset.power);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [radio.selectedRadioPreset]);
 
     const value = useMemo(() => ({

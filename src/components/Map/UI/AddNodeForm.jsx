@@ -8,7 +8,6 @@ const AddNodeForm = ({ selectedLocation, onAdd }) => {
         if (selectedLocation) {
             // eslint-disable-next-line react-hooks/set-state-in-effect
             setManualLat(selectedLocation.lat.toFixed(6));
-            // eslint-disable-next-line react-hooks/set-state-in-effect
             setManualLon(selectedLocation.lng.toFixed(6));
         }
     }, [selectedLocation]);

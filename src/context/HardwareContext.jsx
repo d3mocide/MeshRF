@@ -77,7 +77,6 @@ export const HardwareProvider = ({ children }) => {
     const cableLoss = parseFloat(cableLossVal.toFixed(2));
     const erp = (txPower + antennaGain - cableLoss).toFixed(1);
 
-    // eslint-disable-next-line react-hooks/preserve-manual-memoization
     const value = useMemo(() => ({
         nodeConfigs, setNodeConfigs,
         editMode, setEditMode,

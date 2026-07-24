@@ -69,7 +69,6 @@ const LinkLayer = ({ nodes, setNodes, linkStats, setLinkStats, setCoverageOverla
         });
     };
 
-    // eslint-disable-next-line react-hooks/preserve-manual-memoization
     const runAnalysis = useCallback((p1, p2) => {
         if (!p1 || !p2) return;
         
