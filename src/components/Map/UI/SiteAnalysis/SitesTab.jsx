@@ -39,7 +39,21 @@ function SitesTab({ results, units, onCenter }) {
                         }}
                     >
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                            <span style={{ fontWeight: 'bold', color: '#fff' }}>
+                            <span style={{ fontWeight: 'bold', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                {res.color && (
+                                    <span
+                                        title="Coverage color on map"
+                                        style={{
+                                            display: 'inline-block',
+                                            width: '10px',
+                                            height: '10px',
+                                            borderRadius: '50%',
+                                            backgroundColor: res.color,
+                                            boxShadow: `0 0 6px ${res.color}`,
+                                            flexShrink: 0
+                                        }}
+                                    />
+                                )}
                                 {res.name || `Site ${index + 1}`}
                             </span>
                             <span style={{ color: '#00f2ff', fontSize: '0.75em', fontFamily: 'monospace' }}>

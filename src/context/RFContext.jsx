@@ -1,3 +1,9 @@
+// Hook, re-exported constants, and Provider are intentionally colocated so
+// consumers have a single import surface. This only costs Fast Refresh's
+// component-only hot-swap granularity in dev mode (editing this file
+// triggers a full reload instead of a state-preserving hot-swap) -- it has
+// no effect on correctness or production builds.
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useEffect, useMemo } from "react";
 import { UIProvider, useUI } from "./UIContext";
 import { EnvironmentProvider, useEnvironment, GROUND_TYPES, CLIMATE_ZONES } from "./EnvironmentContext";
@@ -25,12 +31,15 @@ const RFContent = ({ children }) => {
     const radio = useRadio();
     const hardware = useHardware();
 
-    // Glue Logic: Update TX Power when Radio Preset changes (if preset has power)
+    // Glue Logic: Update TX Power when Radio Preset changes (if preset has power).
+    // Intentionally keyed only on the preset id -- including `hardware` would
+    // re-fire this effect on every hardware update, including the one it just made.
     useEffect(() => {
         const preset = RADIO_PRESETS[radio.selectedRadioPreset];
         if (radio.selectedRadioPreset !== "CUSTOM" && preset?.power) {
              hardware.updateConfig("txPower", preset.power);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [radio.selectedRadioPreset]);
 
     const value = useMemo(() => ({

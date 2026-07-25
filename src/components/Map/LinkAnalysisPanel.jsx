@@ -149,7 +149,6 @@ const LinkAnalysisPanel = ({
       {showModelHelp && (
         <ModelComparisonTable
           onClose={() => setShowModelHelp(false)}
-          propagationSettings={propagationSettings}
         />
       )}
 

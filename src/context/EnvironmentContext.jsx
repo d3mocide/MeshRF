@@ -1,3 +1,9 @@
+// Constants, hook, and Provider are intentionally colocated so consumers have
+// a single import surface. This only costs Fast Refresh's component-only
+// hot-swap granularity in dev mode (editing this file triggers a full reload
+// instead of a state-preserving hot-swap) -- it has no effect on correctness
+// or production builds.
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useMemo } from 'react';
 
 // ITM Environment Constants

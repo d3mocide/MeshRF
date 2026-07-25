@@ -27,7 +27,7 @@ const HeatmapOverlay = ({ heatmapData, showHeatmap, center, radiusMeters }) => {
                         pathOptions={{
                             color: color,
                             fillColor: color,
-                            fillOpacity: 0.3,
+                            fillOpacity: opacity,
                             weight: 0
                         }}
                     />

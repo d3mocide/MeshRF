@@ -6,6 +6,9 @@ const DeckGLOverlay = ({ layers }) => {
   const map = useMap();
   const deckLayerRef = useRef(null);
 
+  // Mount/unmount lifecycle only -- intentionally not keyed on `layers`.
+  // Prop updates are handled by the effect below via setProps(), so that
+  // changing layers doesn't tear down and recreate the DeckLayer instance.
   useEffect(() => {
     // Initialize DeckLayer
     if (!deckLayerRef.current) {
@@ -21,6 +24,7 @@ const DeckGLOverlay = ({ layers }) => {
         deckLayerRef.current = null;
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map]);
 
   useEffect(() => {

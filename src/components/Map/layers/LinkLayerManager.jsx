@@ -1,14 +1,12 @@
 import React from 'react';
 import LinkLayer from '../LinkLayer';
 import LinkAnalysisPanel from '../LinkAnalysisPanel';
-import { ImageOverlay } from 'react-leaflet';
 
 const LinkLayerManager = ({
     active,
     locked,
     nodes, setNodes,
     linkStats, setLinkStats,
-    coverageOverlay, setCoverageOverlay,
     propagationSettings, setPropagationSettings,
     budget, distance, units,
     onManualClick
@@ -24,19 +22,11 @@ const LinkLayerManager = ({
                 setNodes={setNodes}
                 linkStats={linkStats}
                 setLinkStats={setLinkStats}
-                setCoverageOverlay={setCoverageOverlay}
                 active={active}
                 locked={locked}
                 propagationSettings={propagationSettings}
                 onManualClick={onManualClick}
             />
-            {coverageOverlay && (
-                <ImageOverlay
-                    url={coverageOverlay.url}
-                    bounds={coverageOverlay.bounds}
-                    opacity={0.6}
-                />
-            )}
             {/* Overlay Panel */}
             {nodes.length === 2 && (
                 <LinkAnalysisPanel
