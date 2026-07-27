@@ -7,7 +7,7 @@ The **Link Analyzer** is designed for detailed point-to-point analysis between t
 - **Profile Verification**: Real-time terrain profile between Site A and Site B.
 - **Fresnel Zone Analysis**: Visualizes the first Fresnel zone and calculates minimum clearance.
 - **Link Budget Calculation**: Predicts RSSI and link margin based on hardware and environment settings.
-- **Propagation Models**: Choose between Free Space Path Loss (Ideal) and Okumura-Hata (Realistic).
+- **Propagation Models**: Choose between Free Space Path Loss (Ideal), Okumura-Hata / COST 231 (Realistic, 150-2000 MHz), Bullington, and ITM. FSPL and the Hata family are computed in the browser and need no backend connection.
 
 ## How to Use
 

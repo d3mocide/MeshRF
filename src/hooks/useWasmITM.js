@@ -3,14 +3,19 @@ import createMeshRF from '../../libmeshrf/js/meshrf.js';
 
 /**
  * Hook for Point-to-Point ITM Path Loss using Wasm
+ * @param {boolean} [enabled=true] - When false, the module is not loaded. Lets
+ *   always-mounted panels defer the ~MB instantiation until ITM is actually
+ *   selected; flipping it to true starts the load.
  * @returns {object} - { calculatePathLoss, isReady }
  */
-export const useWasmITM = () => {
+export const useWasmITM = (enabled = true) => {
     const [isReady, setIsReady] = useState(false);
     const wasmModuleRef = useRef(null);
 
     // Initialize Wasm Module
     useEffect(() => {
+        if (!enabled || wasmModuleRef.current) return;
+
         let mounted = true;
 
         const loadWasm = async () => {
@@ -36,7 +41,7 @@ export const useWasmITM = () => {
         loadWasm();
 
         return () => { mounted = false; };
-    }, []);
+    }, [enabled]);
 
     /**
      * Calculate Point-to-Point ITM Path Loss

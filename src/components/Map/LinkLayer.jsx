@@ -4,7 +4,7 @@ import { useMapEvents, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import { useRF, GROUND_TYPES } from '../../context/RFContext';
 import { DEVICE_PRESETS } from '../../data/presets';
-import { calculateLinkBudget, calculateFresnelPolygon, analyzeLinkProfile, calculateBullingtonDiffraction } from '../../utils/rfMath';
+import { calculateLinkBudget, calculateFresnelPolygon, analyzeLinkProfile, calculateBullingtonDiffraction, calculateClientPathLoss, isClientSideModel } from '../../utils/rfMath';
 import { fetchElevationPath } from '../../utils/elevation';
 import { calculateLink } from '../../utils/rfService';
 import { useWasmITM } from '../../hooks/useWasmITM';
@@ -64,14 +64,35 @@ const LinkLayer = ({ nodes, setNodes, linkStats, setLinkStats, active = true, lo
         const currentModel = propagationSettings?.model?.toLowerCase() || 'itm_wasm';
         const currentEnv = propagationSettings?.environment || 'suburban';
 
-        // Parallel fetch: Elevation for profile/chart, and Path Loss from Backend
+        // Parallel fetch: Elevation for profile/chart, and Path Loss from Backend.
+        // FSPL and Hata/COST 231 resolve client-side (ROADMAP P3-1), so only the
+        // terrain-profile models still need the backend.
+        const needsBackend = (currentModel === 'bullington' || currentModel === 'itm');
+
         Promise.all([
             fetchElevationPath(p1, p2),
-            (currentModel === 'hata' || currentModel === 'bullington' || currentModel === 'itm') 
+            needsBackend
                 ? calculateLink(p1, p2, currentFreq, h1, h2, currentModel, currentEnv, currentConfig.kFactor, currentConfig.clutterHeight)
                 : Promise.resolve(null)
         ])
         .then(async ([profile, backendResult]) => {
+            // Client-side model dispatch (no backend round trip required)
+            if (isClientSideModel(currentModel) && profile && profile.length > 0) {
+                const distanceKm = profile[profile.length - 1].distance;
+                const clientLoss = calculateClientPathLoss({
+                    model: currentModel,
+                    distanceKm,
+                    freqMHz: currentFreq,
+                    txHeightM: h1,
+                    rxHeightM: h2,
+                    environment: currentEnv
+                });
+
+                if (clientLoss !== null && Number.isFinite(clientLoss)) {
+                    backendResult = { path_loss_db: clientLoss };
+                }
+            }
+
             // WASM ITM Calculation override
             if (currentModel === 'itm_wasm' && itmReady && profile) {
                 try {
@@ -268,7 +289,7 @@ const LinkLayer = ({ nodes, setNodes, linkStats, setLinkStats, active = true, lo
     
     // Calculate Diffraction Loss (Bullington) for visualization
     let diffractionLoss = 0;
-    if (propagationSettings?.model === 'Hata' && linkStats.profileWithStats) {
+    if (propagationSettings?.model?.toLowerCase() === 'hata' && linkStats.profileWithStats) {
          diffractionLoss = calculateBullingtonDiffraction(
             linkStats.profileWithStats, 
             freq, 

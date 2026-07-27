@@ -13,7 +13,7 @@ class LinkRequest(BaseModel):
     frequency_mhz: float
     tx_height: float
     rx_height: float
-    model: str = "bullington" # bullington, fspl
+    model: str = "bullington" # bullington, fspl, hata, cost231, itm
     environment: str = "suburban"
     k_factor: float = 1.333
     clutter_height: float = 0.0
