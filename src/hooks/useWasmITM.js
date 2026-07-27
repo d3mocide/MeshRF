@@ -54,6 +54,9 @@ export const useWasmITM = (enabled = true) => {
      * @param {number} params.groundEpsilon - Dielectric Constant (default 15.0)
      * @param {number} params.groundSigma - Conductivity (default 0.005)
      * @param {number} params.climate - Climate Zone (default 5)
+     * @param {number} params.timePct - % of time loss is not exceeded (default 50)
+     * @param {number} params.locPct - % of locations loss is not exceeded (default 50)
+     * @param {number} params.sitPct - % of situations loss is not exceeded (default 50)
      * @returns {Promise<number>} - Total Path Loss in dB (or Infinity on error)
      */
     const calculatePathLoss = async ({
@@ -64,7 +67,10 @@ export const useWasmITM = (enabled = true) => {
         rxHeightM,
         groundEpsilon = 15.0,
         groundSigma = 0.005,
-        climate = 5
+        climate = 5,
+        timePct = 50,
+        locPct = 50,
+        sitPct = 50
     }) => {
         if (!wasmModuleRef.current) {
             console.error('Wasm ITM module not ready');
@@ -94,6 +100,10 @@ export const useWasmITM = (enabled = true) => {
             params.epsilon = groundEpsilon;
             params.sigma = groundSigma;
             params.climate = climate;
+            // Statistical variability (ROADMAP P4-6); 50/50/50 = median forecast
+            params.time_pct = timePct;
+            params.loc_pct = locPct;
+            params.sit_pct = sitPct;
 
             // 3. Call Wasm ITM Function
             // resultVec is a std::vector<float> of path loss values
@@ -131,7 +141,10 @@ export const calculateITMPathLoss = async (Module, {
         rxHeightM,
         groundEpsilon = 15.0,
         groundSigma = 0.005,
-        climate = 5
+        climate = 5,
+        timePct = 50,
+        locPct = 50,
+        sitPct = 50
 }) => {
     let profilePtr = null;
     let params = null;
@@ -153,6 +166,10 @@ export const calculateITMPathLoss = async (Module, {
         params.epsilon = groundEpsilon;
         params.sigma = groundSigma;
         params.climate = climate;
+        // Statistical variability (ROADMAP P4-6); 50/50/50 = median forecast
+        params.time_pct = timePct;
+        params.loc_pct = locPct;
+        params.sit_pct = sitPct;
 
         resultVec = Module.calculate_itm(profilePtr, count, params);
 

@@ -25,6 +25,12 @@ EMSCRIPTEN_BINDINGS(meshrf_module) {
         .property("epsilon", &LinkParameters::epsilon)
         .property("sigma", &LinkParameters::sigma)
         .property("climate", &LinkParameters::climate)
+        // Statistical variability (ROADMAP P4-6). Optional on the JS side --
+        // omitting them keeps the median 50/50/50 prediction.
+        .property("time_pct", &LinkParameters::time_pct)
+        .property("loc_pct", &LinkParameters::loc_pct)
+        .property("sit_pct", &LinkParameters::sit_pct)
+        .property("mdvar", &LinkParameters::mdvar)
         ;
 
     // Register Vector types
@@ -62,14 +68,18 @@ EMSCRIPTEN_BINDINGS(meshrf_module) {
         float gsd_meters,
         float epsilon,
         float sigma,
-        int climate
+        int climate,
+        float time_pct,
+        float loc_pct,
+        float sit_pct
     ) {
         float* elev = reinterpret_cast<float*>(elev_ptr);
         return calculate_rf_coverage(
             elev, width, height, tx_x, tx_y, tx_h, rx_h,
             freq_mhz, tx_power_dbm, tx_gain_dbi, rx_gain_dbi,
             rx_sensitivity, max_dist, gsd_meters,
-            epsilon, sigma, climate
+            epsilon, sigma, climate,
+            time_pct, loc_pct, sit_pct
         );
     }));
 

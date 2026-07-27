@@ -79,15 +79,9 @@ Current tools analyze point-to-point links only. A mesh planner would:
 
 Could build on the batch processing infrastructure with graph analysis (Dijkstra/Floyd-Warshall for optimal paths).
 
-### P4-6: Probabilistic / Variability Modes
+### P4-6: Statistical Coverage Contours (Remaining)
 
-The ITM supports time/location/situation variability percentages (currently fixed at 50/50/50). Exposing these as user controls would enable:
-
-- Worst-case planning (90/90/90 for reliability)
-- Best-case estimation (10/10/10 for maximum range)
-- Statistical coverage contours showing probability of reception
-
-**Blocked on a native rebuild.** `time_pct` is hardcoded to 50.0 in `libmeshrf/src/meshrf_itm.cpp`, and `LinkParameters` (`libmeshrf/include/meshrf_itm.h`, bound in `src/bindings.cpp`) exposes no variability fields. This needs three new struct members, updated Embind bindings, and a fresh emscripten build of `public/meshrf.wasm` -- it cannot ship as a frontend-only change.
+Variability percentages are now user-selectable (see Recently Completed below). The remaining piece is *visualizing* the spread rather than picking a single operating point: rendering probability-of-reception contours by running the coverage grid at several percentages and shading the delta between them.
 
 ---
 
@@ -138,6 +132,26 @@ The ITM supports time/location/situation variability percentages (currently fixe
 **Status:** ✅ Implemented in Phase 5 (CSV/KML).
 
 ## Recently Completed
+
+### P4-6: Probabilistic / Variability Modes (Completed)
+
+**Status:** ✅ Implemented 2026-07-27.
+**Problem:** ITM's time/location/situation variability was hardcoded to 50/50/50 in `libmeshrf/src/meshrf_itm.cpp`, so every prediction was the median forecast with no way to plan for worst case.
+**Solution:** Added `time_pct`, `loc_pct`, `sit_pct` and `mdvar` to `LinkParameters` (`libmeshrf/include/meshrf_itm.h`), exposed them through Embind (`src/bindings.cpp`), and threaded them into the coverage path (`calculate_rf_coverage` gained three trailing arguments). A **Reliability** selector in the Environment sidebar offers Best Case (10/10/10), Typical (50/50/50, default) and Reliable (90/90/90); the mode flows into Link Analysis, RF Coverage and batch ITM reports, and batch rows record which mode produced them.
+
+All new fields are defaulted to the previous hardcoded values, so any caller that ignores them is unchanged -- verified against the built module: a call that never sets the new fields returns a bit-identical result to an explicit 50/50/50.
+
+**Requires a WASM rebuild.** `public/meshrf.wasm`, `libmeshrf/js/meshrf.wasm` and `libmeshrf/js/meshrf.js` are regenerated artifacts and must be rebuilt whenever `libmeshrf/` C++ changes:
+
+```sh
+docker run --rm -v "$PWD/libmeshrf":/app -w /app emscripten/emsdk:latest \
+  bash -c "mkdir -p build_wasm && cd build_wasm && emcmake cmake .. -DEMSCRIPTEN=1 && emmake make"
+cp libmeshrf/build_wasm/meshrf.js  libmeshrf/js/meshrf.js
+cp libmeshrf/build_wasm/meshrf.wasm libmeshrf/js/meshrf.wasm
+cp libmeshrf/build_wasm/meshrf.wasm public/meshrf.wasm
+```
+
+Measured effect on a synthetic ridge profile (915 MHz, 10 m TX / 2 m RX): 10/10/10 = 193.49 dB, 50/50/50 = 203.76 dB, 90/90/90 = 213.66 dB.
 
 ### P4-2: COST 231-Hata Extension (Completed)
 

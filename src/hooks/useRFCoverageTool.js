@@ -148,7 +148,12 @@ export const useRFCoverageTool = (active) => {
                 // New Environment Params (defaults match C++ defaults if undefined)
                 rfParams.epsilon !== undefined ? rfParams.epsilon : 15.0,
                 rfParams.sigma !== undefined ? rfParams.sigma : 0.005,
-                rfParams.climate !== undefined ? rfParams.climate : 5
+                rfParams.climate !== undefined ? rfParams.climate : 5,
+                // Statistical variability (ROADMAP P4-6). Embind matches on arity,
+                // so these must always be passed; 50/50/50 is the median forecast.
+                rfParams.timePct !== undefined ? rfParams.timePct : 50.0,
+                rfParams.locPct !== undefined ? rfParams.locPct : 50.0,
+                rfParams.sitPct !== undefined ? rfParams.sitPct : 50.0
             );
             console.timeEnd("RF_Coverage_WASM_Execution");
             

@@ -32,6 +32,7 @@ meshRF is designed for **mission-critical availability**. It operates with **zer
 - **RF Coverage Simulator**: Optimized Wasm-powered ITM propagation modeling for wide-area coverage visualization.
 - **Viewshed Analysis**: Desktop-grade viewshed calculations with "Shadow Mode" visualization.
 - **Environment Tuning**: Fine-tune simulations with **Ground Type** ($\epsilon$, $\sigma$) and **Climate Zone** parameters for regional accuracy. Supports Sea Water, City/Industrial, Farmland, and more.
+- **Reliability Modes**: Select the ITM statistical confidence level — Best Case (10%), Typical (50%, default) or Reliable (90%) — to plan against median or worst-case conditions instead of a single fixed forecast.
 
 ### 3. ⚡ Batch Operations & reporting
 

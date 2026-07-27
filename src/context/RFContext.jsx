@@ -6,14 +6,14 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useEffect, useMemo } from "react";
 import { UIProvider, useUI } from "./UIContext";
-import { EnvironmentProvider, useEnvironment, GROUND_TYPES, CLIMATE_ZONES } from "./EnvironmentContext";
+import { EnvironmentProvider, useEnvironment, GROUND_TYPES, CLIMATE_ZONES, RELIABILITY_MODES } from "./EnvironmentContext";
 import { RadioProvider, useRadio } from "./RadioContext";
 import { HardwareProvider, useHardware } from "./HardwareContext";
 import { RADIO_PRESETS } from "../data/presets";
 import { calculateLoRaSensitivity } from "../utils/rfMath";
 
 // Re-export constants for backward compatibility
-export { GROUND_TYPES, CLIMATE_ZONES };
+export { GROUND_TYPES, CLIMATE_ZONES, RELIABILITY_MODES };
 
 const RFContext = createContext();
 

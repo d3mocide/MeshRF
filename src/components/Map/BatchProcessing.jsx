@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { useRF, GROUND_TYPES } from '../../context/RFContext';
+import { toVariabilityParams } from '../../context/EnvironmentContext';
 import { fetchElevationPath } from '../../utils/elevation';
 import { analyzeLinkProfile, calculateLinkBudget, calculateBullingtonDiffraction } from '../../utils/rfMath';
 import { parseBatchNodesCSV } from '../../utils/csvParser';
@@ -24,7 +25,7 @@ const BatchProcessing = () => {
         freq, nodeConfigs,
         kFactor, clutterHeight,
         sf, bw, fadeMargin,
-        groundType, climate,
+        groundType, climate, variability,
         isMobile, sidebarIsOpen
     } = useRF();
 
@@ -96,11 +97,14 @@ const BatchProcessing = () => {
                     groundEpsilon: ground.epsilon,
                     groundSigma: ground.sigma,
                     climate,
+                    // ITM statistical variability (ROADMAP P4-6)
+                    ...toVariabilityParams(variability),
                 });
 
                 if (Number.isFinite(loss)) {
                     pathLossOverride = loss;
-                    modelUsed = 'ITM';
+                    // Record the variability mode so the report is self-documenting
+                    modelUsed = `ITM ${variability.time}/${variability.loc}/${variability.sit}`;
                 }
             } catch (e) {
                 console.error('Batch ITM failed, falling back to Bullington', e);
@@ -155,7 +159,7 @@ const BatchProcessing = () => {
             cfgB.antennaGain,
             cfgA.txPower,
         ];
-    }, [nodeConfigs, freq, kFactor, clutterHeight, sf, bw, fadeMargin, groundType, climate, calculateITM]);
+    }, [nodeConfigs, freq, kFactor, clutterHeight, sf, bw, fadeMargin, groundType, climate, variability, calculateITM]);
 
     /** Run the all-pairs mesh report and download it as CSV. */
     const runMeshReport = useCallback(async () => {

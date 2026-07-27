@@ -72,8 +72,15 @@ the export button:
   well suited to sweeping a large candidate list quickly.
 - **Longley-Rice ITM (Accurate, Slower)** — The same WASM ITM engine the Link
   Analysis tool uses, run over a denser 100-point profile and using your
-  **Ground Type** and **Climate Zone** settings. Batch numbers then agree with
-  what you see when you open the same link in the Link Analyzer.
+  **Ground Type**, **Climate Zone** and **Reliability** settings. Batch numbers
+  then agree with what you see when you open the same link in the Link Analyzer.
+
+> [!TIP]
+> The **Reliability** setting in the Environment sidebar applies here too. Running
+> a mesh report at *Reliable (90%)* tells you which links survive poor conditions,
+> not just which ones work on a median day. The `Model` column records the mode
+> used for each row (e.g. `ITM 90/90/90`), so reports run at different confidence
+> levels stay distinguishable after export.
 
 The ITM engine is loaded on demand the first time you select it; the export
 button stays disabled for the moment it takes to initialize. If ITM fails on an
