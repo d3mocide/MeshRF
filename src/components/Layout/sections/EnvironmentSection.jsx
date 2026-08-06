@@ -118,7 +118,7 @@ const EnvironmentSection = ({ isOpen, onToggle }) => {
                             <option key={mode.id} value={mode.id}>{mode.name}</option>
                         ))}
                     </select>
-                    <div style={{fontSize: '0.7em', color: '#666', marginTop: '4px', lineHeight: '1.4'}}>
+                    <div style={{fontSize: '0.7em', color: '#666', marginTop: '4px', lineHeight: '1.4', whiteSpace: 'normal'}}>
                         {variability.description}
                         <div style={{color: '#555', marginTop: '2px', fontFamily: 'monospace'}}>
                             time/loc/situation: {variability.time}/{variability.loc}/{variability.sit}

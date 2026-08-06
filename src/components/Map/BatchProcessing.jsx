@@ -332,7 +332,7 @@ const BatchProcessing = () => {
                     }}
                     />
                 </label>
-                <div style={{fontSize: '0.7em', color: '#666', marginTop: '4px'}}>
+                <div style={{fontSize: '0.7em', color: '#666', marginTop: '4px', whiteSpace: 'normal'}}>
                 Format: Name, Lat, Lon (+ optional per-node columns)
                 <span style={{color: '#444', margin: '0 4px'}}>|</span>
                 <button
