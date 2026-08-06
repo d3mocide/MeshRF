@@ -19,6 +19,12 @@
  * @param rx_sensitivity    Receiver sensitivity in dBm
  * @param max_dist_pixels   Maximum distance to calculate (pixels)
  * @param gsd_meters        Ground Sample Distance (meters per pixel)
+ * @param epsilon           Ground permittivity
+ * @param sigma             Ground conductivity
+ * @param climate           ITM climate zone
+ * @param time_pct          % of time the predicted loss is not exceeded (ROADMAP P4-6)
+ * @param loc_pct           % of locations the predicted loss is not exceeded
+ * @param sit_pct           % of situations the predicted loss is not exceeded
  * @return                  Vector of float values representing received signal strength (dBm)
  *                          at each pixel. Values below rx_sensitivity indicate no coverage.
  */
@@ -39,7 +45,10 @@ std::vector<float> calculate_rf_coverage(
     float gsd_meters,
     float epsilon = 15.0f,
     float sigma = 0.005f,
-    int climate = 5
+    int climate = 5,
+    float time_pct = 50.0f,
+    float loc_pct = 50.0f,
+    float sit_pct = 50.0f
 );
 
 #endif // MESHRF_COVERAGE_H

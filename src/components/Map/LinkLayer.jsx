@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useCallback, memo, useRef } from 'react';
+import React, { useEffect, useCallback, memo, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { useMapEvents, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import { useRF, GROUND_TYPES } from '../../context/RFContext';
+import { toVariabilityParams } from '../../context/EnvironmentContext';
 import { DEVICE_PRESETS } from '../../data/presets';
-import { calculateLinkBudget, calculateFresnelRadius, calculateFresnelPolygon, analyzeLinkProfile, calculateBullingtonDiffraction } from '../../utils/rfMath';
+import { calculateLinkBudget, calculateFresnelPolygon, analyzeLinkProfile, calculateBullingtonDiffraction, calculateClientPathLoss, isClientSideModel } from '../../utils/rfMath';
 import { fetchElevationPath } from '../../utils/elevation';
 import { calculateLink } from '../../utils/rfService';
 import { useWasmITM } from '../../hooks/useWasmITM';
@@ -12,36 +13,18 @@ import * as turf from '@turf/turf';
 import LinkPolyline from './UI/LinkPolyline';
 import { getLinkStyle } from '../../utils/linkStyleHelpers';
 
-// Custom Icons (DivIcon for efficiency)
-
-const txIcon = L.divIcon({
-    className: 'custom-icon-tx',
-    html: `<div style="background-color: #00ff41; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px rgba(0, 255, 65, 0.8);"></div>`,
-    iconSize: [20, 20],
-    iconAnchor: [10, 10]
-});
-
-const rxIcon = L.divIcon({
-    className: 'custom-icon-rx',
-    html: `<div style="background-color: #ff0000; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px rgba(255, 0, 0, 0.8);"></div>`,
-    iconSize: [20, 20],
-    iconAnchor: [10, 10]
-});
-
-const LinkLayer = ({ nodes, setNodes, linkStats, setLinkStats, setCoverageOverlay, active = true, locked = false, propagationSettings, onManualClick }) => {
-    const { 
-        txPower: proxyTx, antennaGain: proxyGain, // we ignore proxies for calc
-        freq, sf, bw, cableLoss, antennaHeight,
+const LinkLayer = ({ nodes, setNodes, linkStats, setLinkStats, active = true, locked = false, propagationSettings, onManualClick }) => {
+    const {
+        freq, sf, bw,
         kFactor, clutterHeight, recalcTimestamp,
         editMode, setEditMode, nodeConfigs, fadeMargin,
-        groundType, climate
+        groundType, climate, variability
     } = useRF();
     // Refs for Manual Update Mode
     const configRef = useRef({ nodeConfigs, freq, kFactor, clutterHeight });
 
     // Refs for direct visual manipulation
     const polylineRef = useRef(null);
-    const fresnelRef = useRef(null);
     const markerRefA = useRef(null);
     const markerRefB = useRef(null);
 
@@ -69,7 +52,6 @@ const LinkLayer = ({ nodes, setNodes, linkStats, setLinkStats, setCoverageOverla
         });
     };
 
-    // eslint-disable-next-line react-hooks/preserve-manual-memoization
     const runAnalysis = useCallback((p1, p2) => {
         if (!p1 || !p2) return;
         
@@ -83,14 +65,35 @@ const LinkLayer = ({ nodes, setNodes, linkStats, setLinkStats, setCoverageOverla
         const currentModel = propagationSettings?.model?.toLowerCase() || 'itm_wasm';
         const currentEnv = propagationSettings?.environment || 'suburban';
 
-        // Parallel fetch: Elevation for profile/chart, and Path Loss from Backend
+        // Parallel fetch: Elevation for profile/chart, and Path Loss from Backend.
+        // FSPL and Hata/COST 231 resolve client-side (ROADMAP P3-1), so only the
+        // terrain-profile models still need the backend.
+        const needsBackend = (currentModel === 'bullington' || currentModel === 'itm');
+
         Promise.all([
             fetchElevationPath(p1, p2),
-            (currentModel === 'hata' || currentModel === 'bullington' || currentModel === 'itm') 
+            needsBackend
                 ? calculateLink(p1, p2, currentFreq, h1, h2, currentModel, currentEnv, currentConfig.kFactor, currentConfig.clutterHeight)
                 : Promise.resolve(null)
         ])
         .then(async ([profile, backendResult]) => {
+            // Client-side model dispatch (no backend round trip required)
+            if (isClientSideModel(currentModel) && profile && profile.length > 0) {
+                const distanceKm = profile[profile.length - 1].distance;
+                const clientLoss = calculateClientPathLoss({
+                    model: currentModel,
+                    distanceKm,
+                    freqMHz: currentFreq,
+                    txHeightM: h1,
+                    rxHeightM: h2,
+                    environment: currentEnv
+                });
+
+                if (clientLoss !== null && Number.isFinite(clientLoss)) {
+                    backendResult = { path_loss_db: clientLoss };
+                }
+            }
+
             // WASM ITM Calculation override
             if (currentModel === 'itm_wasm' && itmReady && profile) {
                 try {
@@ -109,7 +112,9 @@ const LinkLayer = ({ nodes, setNodes, linkStats, setLinkStats, setCoverageOverla
                         rxHeightM: h2,
                         groundEpsilon: ground.epsilon,
                         groundSigma: ground.sigma,
-                        climate: climate
+                        climate: climate,
+                        // ITM statistical variability (ROADMAP P4-6)
+                        ...toVariabilityParams(variability)
                     });
                     
                     if (loss && loss !== Infinity) {
@@ -139,12 +144,19 @@ const LinkLayer = ({ nodes, setNodes, linkStats, setLinkStats, setCoverageOverla
             console.error("Link Analysis Failed", err);
             setLinkStats(prev => ({ ...prev, loading: false, isObstructed: false, minClearance: 0 }));
         });
-    }, [propagationSettings, itmReady, calculateITM, groundType, climate, setLinkStats]);
+    }, [propagationSettings, itmReady, calculateITM, groundType, climate, variability, setLinkStats]);
 
+    // Intentionally excludes `runAnalysis` from deps: environment settings
+    // (ground type, climate, etc.) are applied via the "Update Calculation"
+    // button (see RadioContext.triggerRecalc / recalcTimestamp), not
+    // automatically on every keystroke. When recalcTimestamp bumps, this
+    // effect re-runs with whatever runAnalysis closure the latest render
+    // produced, which already reflects current environment settings.
     useEffect(() => {
         if (nodes.length === 2) {
              runAnalysis(nodes[0], nodes[1]);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [nodes, recalcTimestamp, propagationSettings]); // Trigger on model change
 
     useMapEvents({
@@ -261,8 +273,6 @@ const LinkLayer = ({ nodes, setNodes, linkStats, setLinkStats, setCoverageOverla
         { units: 'kilometers' }
     );
 
-    const fresnelRadius = calculateFresnelRadius(distance, freq);
-    
     // Calculate Budget using explicit Node A (TX) -> Node B (RX) logic
     const configA = nodeConfigs.A;
     const configB = nodeConfigs.B;
@@ -282,7 +292,7 @@ const LinkLayer = ({ nodes, setNodes, linkStats, setLinkStats, setCoverageOverla
     
     // Calculate Diffraction Loss (Bullington) for visualization
     let diffractionLoss = 0;
-    if (propagationSettings?.model === 'Hata' && linkStats.profileWithStats) {
+    if (propagationSettings?.model?.toLowerCase() === 'hata' && linkStats.profileWithStats) {
          diffractionLoss = calculateBullingtonDiffraction(
             linkStats.profileWithStats, 
             freq, 
@@ -291,7 +301,7 @@ const LinkLayer = ({ nodes, setNodes, linkStats, setLinkStats, setCoverageOverla
         );
     }
 
-    const { color: finalColor, dashArray, isBadLink } = getLinkStyle(budget, linkStats, diffractionLoss);
+    const { color: finalColor, dashArray } = getLinkStyle(budget, linkStats, diffractionLoss);
 
     const fresnelPolygon = calculateFresnelPolygon(p1, p2, freq);
 
@@ -368,7 +378,6 @@ LinkLayer.propTypes = {
     setNodes: PropTypes.func.isRequired,
     linkStats: PropTypes.object.isRequired,
     setLinkStats: PropTypes.func.isRequired,
-    setCoverageOverlay: PropTypes.func,
     active: PropTypes.bool,
     locked: PropTypes.bool,
     onManualClick: PropTypes.func,

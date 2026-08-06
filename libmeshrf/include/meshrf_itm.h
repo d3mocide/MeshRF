@@ -10,12 +10,25 @@ struct LinkParameters {
     double rx_height_m;
     int polarization; // 0=horiz, 1=vert
     double step_size_m; // Added: Required to calculate distance from profile index
-    
+
     // ITM Defaults for Environment
     double N_0 = 301.0;
     double epsilon = 15.0;
     double sigma = 0.005;
     int climate = 5; // Continental Temperate
+
+    // Statistical variability (ROADMAP P4-6).
+    // ITM predicts the loss NOT exceeded for the given percentage of time,
+    // locations and situations. 50/50/50 is the median prediction and remains
+    // the default, so callers that don't set these behave exactly as before.
+    // Higher percentages => more conservative (higher) predicted loss.
+    double time_pct = 50.0;
+    double loc_pct = 50.0;
+    double sit_pct = 50.0;
+
+    // Mode of variability. 12 = broadcast mode with location variability,
+    // matching the value previously hardcoded in calculate_radial_loss.
+    int mdvar = 12;
 };
 
 /**

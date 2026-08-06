@@ -1,3 +1,9 @@
+// Hook and Provider are intentionally colocated so consumers have a single
+// import surface. This only costs Fast Refresh's component-only hot-swap
+// granularity in dev mode (editing this file triggers a full reload instead
+// of a state-preserving hot-swap) -- it has no effect on correctness or
+// production builds.
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useMemo } from "react";
 import { DEVICE_PRESETS, ANTENNA_PRESETS, CABLE_TYPES } from "../data/presets";
 
@@ -77,7 +83,6 @@ export const HardwareProvider = ({ children }) => {
     const cableLoss = parseFloat(cableLossVal.toFixed(2));
     const erp = (txPower + antennaGain - cableLoss).toFixed(1);
 
-    // eslint-disable-next-line react-hooks/preserve-manual-memoization
     const value = useMemo(() => ({
         nodeConfigs, setNodeConfigs,
         editMode, setEditMode,

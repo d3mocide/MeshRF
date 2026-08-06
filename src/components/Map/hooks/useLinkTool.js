@@ -17,7 +17,6 @@ export const useLinkTool = () => {
         isObstructed: false,
         loading: false,
     });
-    const [coverageOverlay, setCoverageOverlay] = useState(null);
     const [isLinkLocked, setIsLinkLocked] = useState(false);
     const [selectedBatchNodes, setSelectedBatchNodes] = useState([null, null]); // [TX, RX]
 
@@ -99,7 +98,6 @@ export const useLinkTool = () => {
         setNodes([]);
         setIsLinkLocked(false);
         setLinkStats({ minClearance: 0, isObstructed: false, loading: false });
-        setCoverageOverlay(null);
         setSelectedBatchNodes([null, null]);
         setEditMode("GLOBAL");
     };
@@ -107,7 +105,6 @@ export const useLinkTool = () => {
     return {
         nodes, setNodes,
         linkStats, setLinkStats,
-        coverageOverlay, setCoverageOverlay,
         isLinkLocked, setIsLinkLocked,
         selectedBatchNodes, setSelectedBatchNodes,
         propagationSettings, setPropagationSettings,

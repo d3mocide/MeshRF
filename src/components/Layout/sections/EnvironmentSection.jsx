@@ -1,6 +1,6 @@
 import React from 'react';
 import CollapsibleSection from './CollapsibleSection';
-import { useEnvironment, GROUND_TYPES, CLIMATE_ZONES } from '../../../context/EnvironmentContext';
+import { useEnvironment, GROUND_TYPES, CLIMATE_ZONES, RELIABILITY_MODES } from '../../../context/EnvironmentContext';
 
 const EnvironmentSection = ({ isOpen, onToggle }) => {
     const {
@@ -8,7 +8,8 @@ const EnvironmentSection = ({ isOpen, onToggle }) => {
         clutterHeight, setClutterHeight,
         groundType, setGroundType,
         climate, setClimate,
-        fadeMargin, setFadeMargin
+        fadeMargin, setFadeMargin,
+        reliabilityMode, setReliabilityMode, variability
     } = useEnvironment();
 
     const inputStyle = {
@@ -99,6 +100,30 @@ const EnvironmentSection = ({ isOpen, onToggle }) => {
                             <option key={id} value={id}>{id} - {name}</option>
                         ))}
                     </select>
+                 </div>
+
+                 {/* Reliability / ITM Variability (ROADMAP P4-6) */}
+                 <div>
+                    <label style={{fontSize: '0.75em', color: '#888', display: 'block', marginBottom: '4px'}} htmlFor="reliability-mode">
+                        Reliability (ITM Variability)
+                    </label>
+                    <select
+                        id="reliability-mode"
+                        name="reliability-mode"
+                        value={reliabilityMode}
+                        onChange={(e) => setReliabilityMode(e.target.value)}
+                        style={{...selectStyle, padding: '6px', fontSize: '0.9em', width: '100%'}}
+                    >
+                        {Object.values(RELIABILITY_MODES).map(mode => (
+                            <option key={mode.id} value={mode.id}>{mode.name}</option>
+                        ))}
+                    </select>
+                    <div style={{fontSize: '0.7em', color: '#666', marginTop: '4px', lineHeight: '1.4', whiteSpace: 'normal'}}>
+                        {variability.description}
+                        <div style={{color: '#555', marginTop: '2px', fontFamily: 'monospace'}}>
+                            time/loc/situation: {variability.time}/{variability.loc}/{variability.sit}
+                        </div>
+                    </div>
                  </div>
 
                  {/* Fade Margin */}

@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import L from "leaflet";
 import LinkProfileChart from "./LinkProfileChart";
-import { calculateBullingtonDiffraction } from "../../utils/rfMath";
+import { calculateBullingtonDiffraction, getHataValidity } from "../../utils/rfMath";
 import { useRF } from "../../context/RFContext";
 import { useDraggablePanel } from "../../hooks/useDraggablePanel";
 
@@ -95,13 +95,22 @@ const LinkAnalysisPanel = ({
     statusText = "Diffraction Limited";
   }
 
+  // Hata-family validity (single source of truth in src/utils/math/hata.js --
+  // covers both Okumura-Hata and the COST 231 extension above 1500 MHz)
+  const isHataModel = propagationSettings?.model?.toLowerCase() === "hata";
+  const hataValidity = isHataModel
+    ? getHataValidity({
+        distanceKm: distance,
+        freqMHz: freq,
+        txHeightM: h1,
+        rxHeightM: h2,
+        environment: propagationSettings?.environment,
+      })
+    : null;
+
   // Calculate Dimensions directly (Derived State)
   let layoutOffset = 380;
-  if (
-    propagationSettings &&
-    propagationSettings.model === "hata" &&
-    (h1 < 30 || distance < 1 || distance > 20 || freq < 150 || freq > 1500)
-  ) {
+  if (hataValidity && hataValidity.warnings.length > 0) {
     layoutOffset += 60;
   }
   if (diffractionLoss > 0) {
@@ -149,7 +158,6 @@ const LinkAnalysisPanel = ({
       {showModelHelp && (
         <ModelComparisonTable
           onClose={() => setShowModelHelp(false)}
-          propagationSettings={propagationSettings}
         />
       )}
 
@@ -265,7 +273,9 @@ const LinkAnalysisPanel = ({
                       <option value="bullington">
                         Bullington (Terrain Helper)
                       </option>
-                      <option value="hata">Okumura-Hata (Statistical)</option>
+                      <option value="hata">
+                        Okumura-Hata / COST 231 (Statistical)
+                      </option>
                     </select>
                   </div>
 
@@ -380,8 +390,8 @@ const LinkAnalysisPanel = ({
                   </select>
                 </div>
 
-                {/* Hata Validity Warnings */}
-                {propagationSettings.model === "hata" && (
+                {/* Hata / COST 231 Validity Warnings */}
+                {hataValidity && hataValidity.warnings.length > 0 && (
                   <div
                     style={{
                       marginTop: "8px",
@@ -397,8 +407,9 @@ const LinkAnalysisPanel = ({
                       overflowY: "auto",
                     }}
                   >
-                    {(distance < 1 || distance > 20) && (
+                    {hataValidity.warnings.map((warning) => (
                       <div
+                        key={warning}
                         style={{
                           color: "#ffbf00",
                           display: "flex",
@@ -407,35 +418,9 @@ const LinkAnalysisPanel = ({
                         }}
                       >
                         <span>⚠</span>
-                        <span>Dist {distance.toFixed(1)}km (Limit 1-20km)</span>
+                        <span>{warning}</span>
                       </div>
-                    )}
-                    {h1 < 30 && (
-                      <div
-                        style={{
-                          color: "#ffbf00",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "4px",
-                        }}
-                      >
-                        <span>⚠</span>
-                        <span>TX {h1}m &lt; 30m (Hata Min)</span>
-                      </div>
-                    )}
-                    {(freq < 150 || freq > 1500) && (
-                      <div
-                        style={{
-                          color: "#ffbf00",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "4px",
-                        }}
-                      >
-                        <span>⚠</span>
-                        <span>Freq {freq}MHz (Limit 150-1500)</span>
-                      </div>
-                    )}
+                    ))}
                   </div>
                 )}
               </div>

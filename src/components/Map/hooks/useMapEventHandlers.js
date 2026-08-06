@@ -1,5 +1,5 @@
 import { useMapEvents } from 'react-leaflet';
-import { GROUND_TYPES } from '../../../context/EnvironmentContext';
+import { GROUND_TYPES, toVariabilityParams } from '../../../context/EnvironmentContext';
 
 export const useMapEventHandlers = ({
     toolMode,
@@ -38,7 +38,9 @@ export const useMapEventHandlers = ({
                         rxHeight: rfContext.rxHeight,
                         epsilon: ground.epsilon,
                         sigma: ground.sigma,
-                        climate: rfContext.climate
+                        climate: rfContext.climate,
+                        // ITM statistical variability (ROADMAP P4-6)
+                        ...toVariabilityParams(rfContext.variability)
                     };
 
                     runRF(lat, lng, h, dist, rfParams);

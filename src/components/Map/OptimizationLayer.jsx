@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useMapEvents, useMap, Circle, Marker } from 'react-leaflet';
 import L from 'leaflet';
 import { optimizeLocation } from '../../utils/rfService';
@@ -13,7 +13,7 @@ import OptimizationSettingsPanel from './UI/Optimization/OptimizationSettingsPan
 import CandidateMarkers from './UI/Optimization/CandidateMarkers';
 import HeatmapOverlay from './UI/Optimization/HeatmapOverlay';
 
-const OptimizationLayer = ({ active, setActive, onStateUpdate, weights }) => {
+const OptimizationLayer = ({ active, onStateUpdate, weights }) => {
     // Radial State
     const [center, setCenter] = useState(null);
     const [radiusMeters, setRadiusMeters] = useState(0);
@@ -29,31 +29,8 @@ const OptimizationLayer = ({ active, setActive, onStateUpdate, weights }) => {
     const [showHeatmap, setShowHeatmap] = useState(true);
     const [showSettings, setShowSettings] = useState(false);
     
-    const map = useMap(); 
+    const map = useMap();
     const { freq, antennaHeight, rxHeight, isMobile, kFactor, setKFactor, clutterHeight, setClutterHeight } = useRF();
-    const lastSyncRef = useRef({ center: null, loading: false, ghostCount: 0 }); 
-    
-    // Manual sync helper
-    const syncState = (forceState = null) => {
-        if (!onStateUpdate) return;
-        const stateToSync = forceState || { center, loading, ghostNodes, showResults };
-        const prev = lastSyncRef.current;
-        
-        const centerChanged = stateToSync.center !== prev.center;
-        const loadingChanged = stateToSync.loading !== prev.loading;
-        const ghostCountChanged = (stateToSync.ghostNodes?.length || 0) !== prev.ghostCount;
-        const resultsVisibleChanged = stateToSync.showResults !== prev.showResults;
-
-        if (centerChanged || loadingChanged || ghostCountChanged || resultsVisibleChanged) {
-            onStateUpdate(stateToSync);
-            lastSyncRef.current = {
-                center: stateToSync.center,
-                loading: stateToSync.loading,
-                ghostCount: stateToSync.ghostNodes?.length || 0,
-                showResults: stateToSync.showResults
-            };
-        }
-    };
 
     useMapEvents({
         click(e) {
@@ -155,9 +132,13 @@ const OptimizationLayer = ({ active, setActive, onStateUpdate, weights }) => {
         onStateUpdate?.({ center: null, loading: false, ghostNodes: [], showResults: false });
     }
 
-    // Reset when deactivated
+    // Reset when deactivated. Intentionally excludes `reset` from deps -- it's
+    // a plain function recreated every render, so depending on it would fire
+    // this effect (and its state resets) on every render instead of only when
+    // `active` flips to false.
     useEffect(() => {
         if (!active) reset();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [active]);
 
     if (!active && !ghostNodes.length) return null;
@@ -219,10 +200,9 @@ const OptimizationLayer = ({ active, setActive, onStateUpdate, weights }) => {
             
             {/* Results Panel */}
             {showResults && ghostNodes.length > 0 && (
-                <OptimizationResultsPanel 
+                <OptimizationResultsPanel
                     results={ghostNodes}
                     weights={weights}
-                    onClose={() => setShowResults(false)}
                     onCenter={(node) => {
                         if (map) map.flyTo([node.lat, node.lon], 16, { duration: 1.5 });
                     }}

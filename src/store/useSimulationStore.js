@@ -86,7 +86,7 @@ const useSimulationStore = create((set, get) => ({
       try {
           payload = JSON.parse(event.data);
       } catch (e) {
-          console.error("Failed to parse SSE data", event.data);
+          console.error("Failed to parse SSE data", event.data, e);
           return;
       }
       if (payload.event === 'progress') {

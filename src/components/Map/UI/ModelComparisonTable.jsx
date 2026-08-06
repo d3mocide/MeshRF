@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-const ModelComparisonTable = ({ onClose, propagationSettings }) => {
+const ModelComparisonTable = ({ onClose }) => {
     return (
         <div style={{
             position: 'absolute',
@@ -123,8 +123,7 @@ const ModelComparisonTable = ({ onClose, propagationSettings }) => {
 };
 
 ModelComparisonTable.propTypes = {
-    onClose: PropTypes.func.isRequired,
-    propagationSettings: PropTypes.object
+    onClose: PropTypes.func.isRequired
 };
 
 export default ModelComparisonTable;

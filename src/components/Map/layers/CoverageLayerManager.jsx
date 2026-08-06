@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Marker, Popup, Rectangle } from 'react-leaflet';
 import { useRF } from '../../../context/RFContext';
-import { GROUND_TYPES } from '../../../context/EnvironmentContext';
+import { GROUND_TYPES, toVariabilityParams } from '../../../context/EnvironmentContext';
 
 const CoverageLayerManager = ({
     active,
@@ -22,11 +22,15 @@ const CoverageLayerManager = ({
         rxHeight,
         groundType,
         climate,
+        variability,
         antennaHeight,
         recalcTimestamp // Recalc signal
     } = useRF();
 
-    // Trigger RF Recalculation on Parameter Change
+    // Trigger RF Recalculation on Parameter Change.
+    // Intentionally keyed only on recalcTimestamp: the effect closes over whatever
+    // RF params were current at the last render, so bumping the timestamp is what
+    // fires a recalc, not a change to any individual param.
     useEffect(() => {
         if (recalcTimestamp && active && observer) {
             const { lat, lng } = observer;
@@ -48,10 +52,13 @@ const CoverageLayerManager = ({
                 epsilon: ground.epsilon,
                 sigma: ground.sigma,
                 climate: climate,
+                // ITM statistical variability (ROADMAP P4-6)
+                ...toVariabilityParams(variability),
             };
 
             runAnalysis(lat, lng, h, 25000, rfParams);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [recalcTimestamp]);
 
     if (!active) return null;
@@ -90,8 +97,7 @@ const CoverageLayerManager = ({
                                 body: JSON.stringify({ lat, lon: lng }),
                             })
                             .then((res) => res.json())
-                            .then((data) => {
-                                const elevation = data.elevation || 0;
+                            .then(() => {
                                 const h = antennaHeight || 5.0; // Keep relative height from ground
 
                                 setObserver({ lat, lng, height: h });
@@ -112,6 +118,8 @@ const CoverageLayerManager = ({
                                     epsilon: dragGround.epsilon,
                                     sigma: dragGround.sigma,
                                     climate: climate,
+                                    // ITM statistical variability (ROADMAP P4-6)
+                                    ...toVariabilityParams(variability),
                                 };
 
                                 runAnalysis(lat, lng, h, 25000, rfParams);

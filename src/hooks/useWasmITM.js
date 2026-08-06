@@ -3,14 +3,19 @@ import createMeshRF from '../../libmeshrf/js/meshrf.js';
 
 /**
  * Hook for Point-to-Point ITM Path Loss using Wasm
+ * @param {boolean} [enabled=true] - When false, the module is not loaded. Lets
+ *   always-mounted panels defer the ~MB instantiation until ITM is actually
+ *   selected; flipping it to true starts the load.
  * @returns {object} - { calculatePathLoss, isReady }
  */
-export const useWasmITM = () => {
+export const useWasmITM = (enabled = true) => {
     const [isReady, setIsReady] = useState(false);
     const wasmModuleRef = useRef(null);
 
     // Initialize Wasm Module
     useEffect(() => {
+        if (!enabled || wasmModuleRef.current) return;
+
         let mounted = true;
 
         const loadWasm = async () => {
@@ -36,7 +41,7 @@ export const useWasmITM = () => {
         loadWasm();
 
         return () => { mounted = false; };
-    }, []);
+    }, [enabled]);
 
     /**
      * Calculate Point-to-Point ITM Path Loss
@@ -49,6 +54,9 @@ export const useWasmITM = () => {
      * @param {number} params.groundEpsilon - Dielectric Constant (default 15.0)
      * @param {number} params.groundSigma - Conductivity (default 0.005)
      * @param {number} params.climate - Climate Zone (default 5)
+     * @param {number} params.timePct - % of time loss is not exceeded (default 50)
+     * @param {number} params.locPct - % of locations loss is not exceeded (default 50)
+     * @param {number} params.sitPct - % of situations loss is not exceeded (default 50)
      * @returns {Promise<number>} - Total Path Loss in dB (or Infinity on error)
      */
     const calculatePathLoss = async ({
@@ -59,7 +67,10 @@ export const useWasmITM = () => {
         rxHeightM,
         groundEpsilon = 15.0,
         groundSigma = 0.005,
-        climate = 5
+        climate = 5,
+        timePct = 50,
+        locPct = 50,
+        sitPct = 50
     }) => {
         if (!wasmModuleRef.current) {
             console.error('Wasm ITM module not ready');
@@ -89,6 +100,10 @@ export const useWasmITM = () => {
             params.epsilon = groundEpsilon;
             params.sigma = groundSigma;
             params.climate = climate;
+            // Statistical variability (ROADMAP P4-6); 50/50/50 = median forecast
+            params.time_pct = timePct;
+            params.loc_pct = locPct;
+            params.sit_pct = sitPct;
 
             // 3. Call Wasm ITM Function
             // resultVec is a std::vector<float> of path loss values
@@ -126,7 +141,10 @@ export const calculateITMPathLoss = async (Module, {
         rxHeightM,
         groundEpsilon = 15.0,
         groundSigma = 0.005,
-        climate = 5
+        climate = 5,
+        timePct = 50,
+        locPct = 50,
+        sitPct = 50
 }) => {
     let profilePtr = null;
     let params = null;
@@ -148,6 +166,10 @@ export const calculateITMPathLoss = async (Module, {
         params.epsilon = groundEpsilon;
         params.sigma = groundSigma;
         params.climate = climate;
+        // Statistical variability (ROADMAP P4-6); 50/50/50 = median forecast
+        params.time_pct = timePct;
+        params.loc_pct = locPct;
+        params.sit_pct = sitPct;
 
         resultVec = Module.calculate_itm(profilePtr, count, params);
 

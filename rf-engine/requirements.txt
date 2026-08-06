@@ -7,7 +7,6 @@ mercantile
 Pillow
 redis
 scipy
-itmlogic
 celery
 sse-starlette
 slowapi
