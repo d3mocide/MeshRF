@@ -1,6 +1,6 @@
 # MeshRF Propagation Engine Roadmap
 
-**Last Updated:** 2026-07-27
+**Last Updated:** 2026-08-06
 
 ---
 
