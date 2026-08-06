@@ -27,6 +27,57 @@ export const CLIMATE_ZONES = {
   7: "Maritime Temperate Over Sea",
 };
 
+/**
+ * ITM statistical variability presets (ROADMAP P4-6).
+ *
+ * ITM predicts the path loss NOT exceeded for a given percentage of time,
+ * locations and situations. Higher percentages produce a more conservative
+ * (higher-loss, shorter-range) prediction. TYPICAL is the 50/50/50 median and
+ * is the default, matching every previous release.
+ */
+export const RELIABILITY_MODES = {
+  OPTIMISTIC: {
+    id: "OPTIMISTIC",
+    name: "Best Case (10%)",
+    time: 10,
+    loc: 10,
+    sit: 10,
+    description: "Maximum theoretical range. Optimistic -- do not plan against this.",
+  },
+  TYPICAL: {
+    id: "TYPICAL",
+    name: "Typical (50%)",
+    time: 50,
+    loc: 50,
+    sit: 50,
+    description: "Median prediction. The standard default for general planning.",
+  },
+  RELIABLE: {
+    id: "RELIABLE",
+    name: "Reliable (90%)",
+    time: 90,
+    loc: 90,
+    sit: 90,
+    description: "Conservative. Use when the link must hold up in poor conditions.",
+  },
+};
+
+/** Fallback used whenever a stored mode id is missing or unrecognized. */
+export const DEFAULT_RELIABILITY_MODE = "TYPICAL";
+
+/**
+ * Map a reliability mode to the `rfParams`/ITM keys the WASM helpers expect.
+ * Falls back to the median 50/50/50 when no mode is supplied, so callers that
+ * predate P4-6 keep their previous behaviour.
+ * @param {Object} [variability] - A RELIABILITY_MODES entry
+ * @returns {{timePct: number, locPct: number, sitPct: number}}
+ */
+export const toVariabilityParams = (variability) => ({
+  timePct: variability?.time ?? 50,
+  locPct: variability?.loc ?? 50,
+  sitPct: variability?.sit ?? 50,
+});
+
 const EnvironmentContext = createContext();
 
 export const useEnvironment = () => useContext(EnvironmentContext);
@@ -43,6 +94,15 @@ export const EnvironmentProvider = ({ children }) => {
     const [fadeMargin, setFadeMargin] = useState(10); // Fade Margin (dB), default 10dB
     const [viewshedMaxDist, setViewshedMaxDist] = useState(25000); // Max Distance (m), default 25km
 
+    // ITM statistical variability (ROADMAP P4-6)
+    const [reliabilityMode, setReliabilityMode] = useState(DEFAULT_RELIABILITY_MODE);
+
+    // Resolved time/location/situation percentages for the active mode
+    const variability = useMemo(
+        () => RELIABILITY_MODES[reliabilityMode] || RELIABILITY_MODES[DEFAULT_RELIABILITY_MODE],
+        [reliabilityMode]
+    );
+
     const value = useMemo(() => ({
         kFactor, setKFactor,
         clutterHeight, setClutterHeight,
@@ -50,8 +110,10 @@ export const EnvironmentProvider = ({ children }) => {
         climate, setClimate,
         rxHeight, setRxHeight,
         fadeMargin, setFadeMargin,
-        viewshedMaxDist, setViewshedMaxDist
-    }), [kFactor, clutterHeight, groundType, climate, rxHeight, fadeMargin, viewshedMaxDist]);
+        viewshedMaxDist, setViewshedMaxDist,
+        reliabilityMode, setReliabilityMode,
+        variability
+    }), [kFactor, clutterHeight, groundType, climate, rxHeight, fadeMargin, viewshedMaxDist, reliabilityMode, variability]);
 
     return <EnvironmentContext.Provider value={value}>{children}</EnvironmentContext.Provider>;
 };

@@ -21,7 +21,10 @@ std::vector<float> calculate_rf_coverage(
     float gsd_meters,
     float epsilon,
     float sigma,
-    int climate
+    int climate,
+    float time_pct,
+    float loc_pct,
+    float sit_pct
 ) {
     // Initialize result buffer with "no signal" value
     std::vector<float> signal_strength(width * height, -999.0f);
@@ -88,6 +91,10 @@ std::vector<float> calculate_rf_coverage(
             params.epsilon = epsilon; // Ground permittivity
             params.sigma = sigma; // Ground conductivity
             params.climate = climate; // Climate zone
+            // Statistical variability (ROADMAP P4-6); 50/50/50 = median forecast
+            params.time_pct = time_pct;
+            params.loc_pct = loc_pct;
+            params.sit_pct = sit_pct;
             
             // Calculate path loss using ITM
             std::vector<float> losses = calculate_radial_loss(profile.data(), profile.size(), params);

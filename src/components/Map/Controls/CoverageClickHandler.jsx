@@ -1,5 +1,6 @@
 import { useMapEvents } from 'react-leaflet';
-import { GROUND_TYPES } from '../../../context/RFContext'; 
+import { GROUND_TYPES } from '../../../context/RFContext';
+import { toVariabilityParams } from '../../../context/EnvironmentContext';
 
 const CoverageClickHandler = ({ mode, runViewshed, runRFCoverage, setViewshedObserver, setRfObserver, rfContext }) => {
     useMapEvents({
@@ -40,7 +41,9 @@ const CoverageClickHandler = ({ mode, runViewshed, runRFCoverage, setViewshedObs
                         // New Environment Params
                         epsilon: ground.epsilon,
                         sigma: ground.sigma,
-                        climate: rfContext.climate
+                        climate: rfContext.climate,
+                        // ITM statistical variability (ROADMAP P4-6)
+                        ...toVariabilityParams(rfContext.variability)
                     };
                     
 

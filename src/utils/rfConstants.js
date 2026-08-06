@@ -23,12 +23,43 @@ export const RF_CONSTANTS = {
     HB_SCALE: 13.82,
     DISTANCE_BASE: 44.9,
     DISTANCE_HB_SCALE: 6.55,
-    
+
     LIMITS: {
       MIN_DIST_KM: 0.1,
       MIN_HEIGHT: 1.0,
-    }
+    },
+
+    // Published validity envelope (Okumura-Hata, 150-1500 MHz).
+    // Outside these the formula still evaluates but is extrapolation.
+    VALID: {
+      FREQ_MHZ: [150, 1500],
+      DIST_KM: [1, 20],
+      TX_HEIGHT_M: [30, 200],
+      RX_HEIGHT_M: [1, 10],
+    },
   },
+
+  // COST 231-Hata extension (1500-2000 MHz). Same structure as Hata with a
+  // different base/frequency slope plus a metropolitan correction factor C.
+  COST231: {
+    URBAN_BASE: 46.3,
+    FREQ_SCALE: 33.9,
+    HB_SCALE: 13.82,
+    DISTANCE_BASE: 44.9,
+    DISTANCE_HB_SCALE: 6.55,
+    // C: 3 dB for metropolitan centres, 0 dB for medium cities / suburban.
+    METRO_CORRECTION_DB: 3.0,
+
+    VALID: {
+      FREQ_MHZ: [1500, 2000],
+      DIST_KM: [1, 20],
+      TX_HEIGHT_M: [30, 200],
+      RX_HEIGHT_M: [1, 10],
+    },
+  },
+
+  // Frequency at or above which the Hata family switches to COST 231.
+  HATA_COST231_CROSSOVER_MHZ: 1500,
 
   // LoRa / Hardware Constants (Semtech SX1262 datasheet, power-saving RX mode)
   LORA: {

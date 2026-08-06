@@ -14,7 +14,7 @@ meshRF is designed for **mission-critical availability**. It operates with **zer
 - **Advanced Models**:
   - **ITM (Longley-Rice)**: High-precision WASM physical modeling.
   - **Bullington**: Terrain-aware diffraction (Backend).
-  - **Okumura-Hata**: Empirical model for urban zones.
+  - **Okumura-Hata / COST 231**: Empirical model for urban zones, covering 150-2000 MHz.
   - **Free Space**: Baseline physics comparison.
 - **Model Selector**: Comparison tool to instantly switch between models for A/B testing.
 - **Asymmetric Links**: Configure unique hardware (power, gain, height) for **Node A** and **Node B** independently.
@@ -32,11 +32,14 @@ meshRF is designed for **mission-critical availability**. It operates with **zer
 - **RF Coverage Simulator**: Optimized Wasm-powered ITM propagation modeling for wide-area coverage visualization.
 - **Viewshed Analysis**: Desktop-grade viewshed calculations with "Shadow Mode" visualization.
 - **Environment Tuning**: Fine-tune simulations with **Ground Type** ($\epsilon$, $\sigma$) and **Climate Zone** parameters for regional accuracy. Supports Sea Water, City/Industrial, Farmland, and more.
+- **Reliability Modes**: Select the ITM statistical confidence level — Best Case (10%), Typical (50%, default) or Reliable (90%) — to plan against median or worst-case conditions instead of a single fixed forecast.
 
 ### 3. ⚡ Batch Operations & reporting
 
 - **Bulk Link Matrix**: Import CSVs (`Name, Lat, Lon`) to instantly compute link budgets for entire networks.
-- **Automated Reporting**: Export detailed CSV reports containing RSSI, Signal Margin, and Clearance values.
+- **Per-Node Hardware**: Optional CSV columns (antenna height, gain, TX power, device, antenna) let individual sites override the global config for realistic mixed-device meshes.
+- **Selectable Batch Model**: Run mesh reports with fast Bullington diffraction or full WASM ITM for terrain-accurate results that match Link Analysis.
+- **Automated Reporting**: Export detailed CSV reports containing RSSI, Signal Margin, Clearance, path loss, and the per-node parameters used.
 - **Context-Aware Guidance**: Every tool features built-in, interactive help banners that update based on your current mode, guiding you through workflows step-by-step.
 
 ### 4. 📚 Documentation
@@ -67,10 +70,16 @@ meshRF supports multiple propagation models to suit different environments:
 
 | Model                  | Best For          | Characteristics                                                                |
 | :--------------------- | :---------------- | :----------------------------------------------------------------------------- |
-| **Free Space (FSPL)**  | Ideal LOS, Orbit  | Baseline physics, no terrain or environment effects.                           |
-| **Okumura-Hata**       | Flat/Suburban     | Empirical model for urban/suburban. Assumes flat terrain.                      |
+| **Free Space (FSPL)**  | Ideal LOS, Orbit  | Baseline physics, no terrain or environment effects. Runs client-side.         |
+| **Okumura-Hata**       | Flat/Suburban     | Empirical model for urban/suburban, 150-1500 MHz. Assumes flat terrain. Runs client-side. |
+| **COST 231-Hata**      | 1.5-2 GHz ISM     | Hata extended to 1500-2000 MHz. Selected automatically above 1500 MHz.         |
 | **Bullington**         | Terrain/Mesh      | Efficient terrain-aware diffraction. Fast & reliable for terrestrial links.    |
 | **ITM (Longley-Rice)** | Irregular Terrain | **Gold Standard**. High-fidelity WASM-powered physical modeling. Ground-aware. |
+
+> [!NOTE]
+> FSPL and the Hata family are computed in the browser, so they remain available
+> when the Python backend is unreachable (including offline/PWA use). Bullington
+> and server-side ITM require the RF Engine.
 
 > [!TIP]
 > Use **ITM (Longley-Rice)** for mission-critical link analysis. It accounts for irregular terrain, diffraction, troposcatter, and specific ground/climate parameters. Use **Bullington** for rapid terrain-aware estimates.

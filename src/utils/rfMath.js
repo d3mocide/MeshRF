@@ -8,3 +8,5 @@ export * from './math/linkBudget';
 export * from './math/earth';
 export * from './math/profile';
 export * from './math/bullington';
+export * from './math/hata';
+export * from './math/pathLoss';

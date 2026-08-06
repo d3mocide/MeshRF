@@ -127,6 +127,54 @@ def calculate_hata_loss(dist_m, freq_mhz, tx_h, rx_h, environment='urban_small')
     return max(0.0, loss)
 
 
+COST231_CROSSOVER_MHZ = 1500.0
+
+
+def calculate_cost231_loss(dist_m, freq_mhz, tx_h, rx_h, environment='urban_small'):
+    """
+    Calculate COST 231-Hata Path Loss (ROADMAP P4-2).
+    Valid for 1500-2000 MHz, 1-20km -- extends Okumura-Hata into the upper ISM
+    bands (e.g. 1.8/2.0 GHz).
+
+    COST 231 defines only a metropolitan correction factor C (3 dB); it has no
+    separate suburban or rural correction, so those environments evaluate the
+    same as 'urban_small'. Mirrored by calculateCost231Loss in
+    src/utils/math/hata.js.
+    """
+    dist_km = dist_m / 1000.0
+
+    # Clamp identically to calculate_hata_loss
+    d = max(0.1, dist_km)
+    f = freq_mhz
+    hb = max(1, tx_h)
+    hm = max(1, rx_h)
+
+    logF = math.log10(f)
+    logHb = math.log10(hb)
+    logD = math.log10(d)
+
+    # COST 231 always uses the small/medium-city mobile height correction
+    a_hm = (1.1 * logF - 0.7) * hm - (1.56 * logF - 0.8)
+
+    # C = 3 dB metropolitan centres, 0 dB medium cities / suburban
+    metro = 3.0 if environment == 'urban_large' else 0.0
+
+    # L = 46.3 + 33.9*log(f) - 13.82*log(hb) - a(hm) + (44.9 - 6.55*log(hb))*log(d) + C
+    loss = 46.3 + 33.9 * logF - 13.82 * logHb - a_hm + (44.9 - 6.55 * logHb) * logD + metro
+
+    return max(0.0, loss)
+
+
+def calculate_hata_family_loss(dist_m, freq_mhz, tx_h, rx_h, environment='urban_small'):
+    """
+    Dispatch between Okumura-Hata (<1500 MHz) and COST 231 (>=1500 MHz) so a
+    single 'hata' model selection covers 150-2000 MHz.
+    """
+    if freq_mhz >= COST231_CROSSOVER_MHZ:
+        return calculate_cost231_loss(dist_m, freq_mhz, tx_h, rx_h, environment)
+    return calculate_hata_loss(dist_m, freq_mhz, tx_h, rx_h, environment)
+
+
 def calculate_path_loss(dist_m, elevs, freq_mhz, tx_h, rx_h, model='bullington', environment='suburban', k_factor=1.333, clutter_height=0.0):
     """
     Generic Path Loss Calculator.
@@ -135,10 +183,14 @@ def calculate_path_loss(dist_m, elevs, freq_mhz, tx_h, rx_h, model='bullington',
     dist_km = dist_m / 1000.0
     if dist_km < 0.001: return 0.0
 
-    # 1. Okumura-Hata
+    # 1. Okumura-Hata (auto-extends to COST 231 above 1500 MHz)
     if model == 'hata':
-        return calculate_hata_loss(dist_m, freq_mhz, tx_h, rx_h, environment)
-        
+        return calculate_hata_family_loss(dist_m, freq_mhz, tx_h, rx_h, environment)
+
+    # 1b. Explicit COST 231 selection
+    if model == 'cost231':
+        return calculate_cost231_loss(dist_m, freq_mhz, tx_h, rx_h, environment)
+
     # 2. Free Space (FSPL) - implicitly used as base for others or explicit
     fspl = 20 * math.log10(dist_km) + 20 * math.log10(freq_mhz) + 32.45
     

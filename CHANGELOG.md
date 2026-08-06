@@ -10,14 +10,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Per-Node Coverage Visualization (P6-1)**: Multi-Site Analysis composite overlay now renders each selected node's coverage as a distinct color instead of one flat cyan mask, so overlapping/redundant sites are visually distinguishable. Simulation node markers and the Sites results table are color-matched to the same coverage patches.
+- **Client-Side Hata & FSPL (P3-1)**: Okumura-Hata is now implemented in JavaScript (`src/utils/math/hata.js`), mirroring the Python engine term-for-term. The Link Analysis tool resolves the `fspl` and `hata` models locally instead of calling `/api/calculate-link`, so both remain usable with no backend -- including offline/PWA use. `bullington` and server-side `itm` still use the backend, which applies clutter height and k-factor to the terrain profile.
+- **COST 231-Hata Extension (P4-2)**: Hata coverage extended from 150-1500 MHz to 150-2000 MHz. Selecting "Hata" automatically dispatches to COST 231 at or above 1500 MHz in both the frontend and `rf-engine`; `cost231` is also accepted as an explicit backend model. COST 231 defines only the 3 dB metropolitan correction, so choosing a suburban or rural environment above the crossover now raises an explicit warning rather than silently reusing the Okumura-Hata corrections.
+- **WASM ITM for Batch Reports (P3-3)**: Batch Processing gained a propagation-model selector. Choosing Longley-Rice ITM runs the same WASM engine as Link Analysis over a 100-point terrain profile (vs 20 for Bullington), honouring Ground Type and Climate Zone, so batch numbers agree with single-link analysis. The engine loads lazily on selection, and a link that fails ITM falls back to Bullington instead of failing the report.
+- **Per-Node Configs in Batch CSV (P3-4)**: Batch CSV import now accepts optional `Antenna_Height`, `Antenna_Gain`, `TX_Power`, `Device` and `Antenna` columns (with aliases such as `Height`/`AGL`/`Gain`/`Power`, and loose preset-name matching so `HELTEC_V3`, `heltec-v3` and `Heltec V3` all resolve). Values are merged over the global A/B config field-by-field; blank cells and existing three-column files behave exactly as before. The sidebar reports how many loaded nodes carry an override.
+- Mesh report CSV now includes `Model`, `PathLoss_dB`, and the per-node TX/RX heights, gains and TX power, plus a progress bar while the report runs.
+- **Probabilistic / Variability Modes (P4-6)**: ITM's time/location/situation variability was hardcoded to 50/50/50; it is now user-selectable via a **Reliability** control in the Environment sidebar -- Best Case (10/10/10), Typical (50/50/50, default) and Reliable (90/90/90). The mode applies to Link Analysis, RF Coverage and batch ITM reports, and batch rows record which mode produced them. On a synthetic ridge profile at 915 MHz this spans roughly 20 dB (193.5 / 203.8 / 213.7 dB).
+  - Required C++ changes: `time_pct`, `loc_pct`, `sit_pct` and `mdvar` added to `LinkParameters`, exposed through Embind, and threaded into `calculate_rf_coverage` (which gained three trailing arguments). All default to the previously hardcoded values, so callers that ignore them are unchanged -- a call that never sets the new fields returns a bit-identical result to an explicit 50/50/50.
+  - `public/meshrf.wasm`, `libmeshrf/js/meshrf.wasm` and `libmeshrf/js/meshrf.js` are regenerated. See ROADMAP.md P4-6 for the rebuild command.
 
 ### Changed
 
 - **Backend**: Refactored `rf-engine/core/viewshed_proc.py` to share a single pixel-projection helper instead of three near-identical copies of the same coordinate-mapping logic.
 - Added `eslint-plugin-react`'s `jsx-uses-vars` rule to `eslint.config.js` -- the previous config had no way to recognize JSX component usage, producing ~100 false-positive "unused import" warnings that were masking real ones.
 - Added a `ci.yml` GitHub Actions workflow that runs frontend lint/test/build and the `rf-engine` pytest suite on every push and PR to `dev`/`main`.
+- `useWasmITM` accepts an `enabled` flag so always-mounted panels can defer loading the WASM module until ITM is actually selected, keeping it off the startup path.
+- Hata validity warnings in the Link Analysis panel are driven by a single `getHataValidity` helper instead of inline thresholds, so they track the active model variant.
+- Mesh report export writes via a Blob instead of a `data:` URI and escapes CSV fields, so node names containing commas or quotes no longer corrupt the report.
 
 ### Fixed
+
+- Bullington diffraction loss was never shown for the Hata model in `LinkLayer`: the check compared against `'Hata'` while the model value is lowercase `'hata'`, so the condition could never be true.
 
 - Dead `elevation` variable, unused caught SSE-parse error, and stale `eslint-disable` directives now flagged/cleaned up now that lint output is trustworthy again.
 - `ROADMAP.md` had a duplicated P5-6/P5-7 section from a copy-paste error.

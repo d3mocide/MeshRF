@@ -1,9 +1,22 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { useRF } from '../../context/RFContext';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
+import { useRF, GROUND_TYPES } from '../../context/RFContext';
+import { toVariabilityParams } from '../../context/EnvironmentContext';
 import { fetchElevationPath } from '../../utils/elevation';
 import { analyzeLinkProfile, calculateLinkBudget, calculateBullingtonDiffraction } from '../../utils/rfMath';
-import { DEVICE_PRESETS } from '../../data/presets';
 import { parseBatchNodesCSV } from '../../utils/csvParser';
+import { resolveNodeConfig } from '../../utils/nodeConfig';
+import { csvEscape, downloadTextFile, downloadBatchNodesTemplate } from '../../utils/csvImportExport';
+import { useWasmITM } from '../../hooks/useWasmITM';
+
+/**
+ * Elevation samples per link. ITM needs a denser profile to resolve terrain
+ * (the backend uses 100 for the same reason); Bullington stays coarse so large
+ * meshes remain quick.
+ */
+const PROFILE_SAMPLES = {
+    bullington: 20,
+    itm_wasm: 100,
+};
 
 const BatchProcessing = () => {
     const {
@@ -12,12 +25,21 @@ const BatchProcessing = () => {
         freq, nodeConfigs,
         kFactor, clutterHeight,
         sf, bw, fadeMargin,
+        groundType, climate, variability,
         isMobile, sidebarIsOpen
     } = useRF();
 
     const [batchNotification, setBatchNotification] = useState(null); // { message, type }
     const [showHelp, setShowHelp] = useState(false);
+    const [batchModel, setBatchModel] = useState('bullington');
+    const [progress, setProgress] = useState(null); // { done, total }
     const fileInputRef = useRef(null);
+
+    // WASM ITM for terrain-aware batch reports (ROADMAP P3-3).
+    // Loaded lazily -- this panel is always mounted, so the module is only
+    // instantiated once the user actually selects the ITM model.
+    const itmSelected = batchModel === 'itm_wasm';
+    const { calculatePathLoss: calculateITM, isReady: itmReady } = useWasmITM(itmSelected);
 
     useEffect(() => {
         if (batchNotification) {
@@ -27,6 +49,161 @@ const BatchProcessing = () => {
             return () => clearTimeout(timer);
         }
     }, [batchNotification]);
+
+    /**
+     * Analyse a single node pair and return its CSV row fields.
+     * Falls back from ITM to Bullington per-link if the WASM call fails, so one
+     * bad profile doesn't sink the whole report.
+     */
+    const analyzePair = useCallback(async (n1, n2, useITM) => {
+        const samples = useITM ? PROFILE_SAMPLES.itm_wasm : PROFILE_SAMPLES.bullington;
+        const profile = await fetchElevationPath(
+            { lat: n1.lat, lng: n1.lng },
+            { lat: n2.lat, lng: n2.lng },
+            samples
+        );
+
+        // Need at least two points to derive a step size / distance
+        if (!profile || profile.length < 2) return null;
+
+        const cfgA = resolveNodeConfig(n1, nodeConfigs.A);
+        const cfgB = resolveNodeConfig(n2, nodeConfigs.B);
+
+        const analysis = analyzeLinkProfile(
+            profile,
+            freq,
+            cfgA.antennaHeight,
+            cfgB.antennaHeight,
+            kFactor,
+            clutterHeight
+        );
+
+        const distKm = profile[profile.length - 1].distance;
+
+        let pathLossOverride = null;
+        let excessLoss = 0;
+        let modelUsed = 'Bullington';
+
+        if (useITM) {
+            try {
+                const ground = GROUND_TYPES[groundType] || GROUND_TYPES['Average Ground'];
+                const totalDistMeters = distKm * 1000;
+                const loss = await calculateITM({
+                    elevationProfile: new Float32Array(profile.map((p) => p.elevation)),
+                    stepSizeMeters: totalDistMeters / (profile.length - 1),
+                    frequencyMHz: freq,
+                    txHeightM: cfgA.antennaHeight,
+                    rxHeightM: cfgB.antennaHeight,
+                    groundEpsilon: ground.epsilon,
+                    groundSigma: ground.sigma,
+                    climate,
+                    // ITM statistical variability (ROADMAP P4-6)
+                    ...toVariabilityParams(variability),
+                });
+
+                if (Number.isFinite(loss)) {
+                    pathLossOverride = loss;
+                    // Record the variability mode so the report is self-documenting
+                    modelUsed = `ITM ${variability.time}/${variability.loc}/${variability.sit}`;
+                }
+            } catch (e) {
+                console.error('Batch ITM failed, falling back to Bullington', e);
+            }
+        }
+
+        if (pathLossOverride === null) {
+            // FSPL + Bullington diffraction (terrain-aware, no WASM required)
+            excessLoss = analysis.profileWithStats
+                ? calculateBullingtonDiffraction(
+                    analysis.profileWithStats,
+                    freq,
+                    cfgA.antennaHeight,
+                    cfgB.antennaHeight
+                )
+                : 0;
+        }
+
+        const budget = calculateLinkBudget({
+            txPower: cfgA.txPower,
+            txGain: cfgA.antennaGain,
+            txLoss: cfgA.loss,
+            rxGain: cfgB.antennaGain,
+            rxLoss: cfgB.loss,
+            distanceKm: distKm,
+            freqMHz: freq,
+            sf, bw,
+            pathLossOverride,
+            excessLoss,
+            fadeMargin,
+        });
+
+        const status = analysis.isObstructed
+            ? 'OBSTRUCTED'
+            : (budget.margin > 10 ? 'GOOD' : 'MARGINAL');
+
+        return [
+            n1.name,
+            n2.name,
+            distKm.toFixed(3),
+            status,
+            analysis.linkQuality,
+            budget.margin,
+            analysis.minClearance,
+            modelUsed,
+            // budget.fspl carries the override when one was supplied, otherwise
+            // plain FSPL -- diffraction is billed separately as excessLoss.
+            (pathLossOverride !== null ? pathLossOverride : budget.fspl + excessLoss).toFixed(2),
+            cfgA.antennaHeight,
+            cfgB.antennaHeight,
+            cfgA.antennaGain,
+            cfgB.antennaGain,
+            cfgA.txPower,
+        ];
+    }, [nodeConfigs, freq, kFactor, clutterHeight, sf, bw, fadeMargin, groundType, climate, variability, calculateITM]);
+
+    /** Run the all-pairs mesh report and download it as CSV. */
+    const runMeshReport = useCallback(async () => {
+        const useITM = batchModel === 'itm_wasm' && itmReady;
+        const total = batchNodes.length * (batchNodes.length - 1) / 2;
+
+        const header = [
+            'Source', 'Target', 'Distance_km', 'Status', 'Quality', 'Margin_dB',
+            'Clearance_m', 'Model', 'PathLoss_dB', 'TxHeight_m', 'RxHeight_m',
+            'TxGain_dBi', 'RxGain_dBi', 'TxPower_dBm',
+        ];
+        const rows = [header.join(',')];
+
+        setProgress({ done: 0, total });
+        let done = 0;
+
+        for (let i = 0; i < batchNodes.length; i++) {
+            for (let j = i + 1; j < batchNodes.length; j++) {
+                const n1 = batchNodes[i];
+                const n2 = batchNodes[j];
+
+                try {
+                    const fields = await analyzePair(n1, n2, useITM);
+                    if (fields) rows.push(fields.map(csvEscape).join(','));
+                } catch (e) {
+                    console.error('Batch Error', e);
+                    rows.push([n1.name, n2.name, ...Array(header.length - 2).fill('ERR')]
+                        .map(csvEscape).join(','));
+                }
+
+                done += 1;
+                setProgress({ done, total });
+
+                // Small delay to prevent browser freeze & rate limit
+                await new Promise((r) => setTimeout(r, 200));
+            }
+        }
+
+        downloadTextFile(
+            rows.join('\n'),
+            `mesh_rf_analysis_${new Date().toISOString().slice(0, 10)}.csv`
+        );
+        setProgress(null);
+    }, [batchNodes, batchModel, itmReady, analyzePair]);
 
     const sectionStyle = {
         marginBottom: 'var(--spacing-lg)',
@@ -96,8 +273,15 @@ const BatchProcessing = () => {
                     </div>
                     <ul style={{ paddingLeft: '18px', margin: '0 0 8px 0', color: '#bbb' }}>
                         <li><strong>CSV Import:</strong> Upload a file with <code>Name, Lat, Lon</code>.</li>
+                        <li>
+                            <strong>Per-Node Config:</strong> Optionally add
+                            {' '}<code>Antenna_Height</code>, <code>Antenna_Gain</code>,
+                            {' '}<code>TX_Power</code>, <code>Device</code>, <code>Antenna</code>.
+                            Blank cells fall back to the global A/B config.
+                        </li>
+                        <li><strong>Model:</strong> Bullington is fast; ITM is terrain-accurate and matches Link Analysis.</li>
                         <li><strong>Mesh Report:</strong> Analyzes every possible point-to-point link between all loaded nodes.</li>
-                        <li><strong>Results:</strong> Detailed CSV including RSSI, Margin, and Clearance.</li>
+                        <li><strong>Results:</strong> Detailed CSV including path loss, margin, clearance, and the per-node params used.</li>
                     </ul>
                     <button 
                         onClick={() => setShowHelp(false)}
@@ -149,110 +333,119 @@ const BatchProcessing = () => {
                     />
                 </label>
                 <div style={{fontSize: '0.7em', color: '#666', marginTop: '4px'}}>
-                Format: Name, Lat, Lon 
+                Format: Name, Lat, Lon (+ optional per-node columns)
                 <span style={{color: '#444', margin: '0 4px'}}>|</span>
-                <a 
-                    href="data:text/csv;charset=utf-8,Name,Lat,Lon%0ASite%20Alpha,45.5152,-122.6784%0ASite%20Bravo,45.5252,-122.6684%0ASite%20Charlie,45.5052,-122.6884%0ASite%20Delta,45.5100,-122.6500%0ASite%20Echo,45.5300,-122.6900" 
-                    download="meshrf_template.csv"
-                    style={{color: 'var(--color-primary)', textDecoration: 'none', cursor: 'pointer'}}
+                <button
+                    type="button"
+                    onClick={downloadBatchNodesTemplate}
+                    style={{
+                        color: 'var(--color-primary)',
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        font: 'inherit',
+                        textDecoration: 'none',
+                        cursor: 'pointer'
+                    }}
                 >
                     Download Template
-                </a>
+                </button>
                 </div>
             </div>
 
+            {/* Propagation model for the mesh report (ROADMAP P3-3) */}
+            {batchNodes.length > 1 && (
+                <div style={{ marginBottom: '8px' }}>
+                    <label
+                        htmlFor="batch-model"
+                        style={{ display: 'block', fontSize: '0.7em', color: '#888', marginBottom: '4px' }}
+                    >
+                        Propagation Model
+                    </label>
+                    <select
+                        id="batch-model"
+                        value={batchModel}
+                        onChange={(e) => setBatchModel(e.target.value)}
+                        disabled={progress !== null}
+                        style={{
+                            width: '100%',
+                            background: '#1a1a1a',
+                            color: '#fff',
+                            border: '1px solid #444',
+                            padding: '4px',
+                            borderRadius: '4px',
+                            fontSize: '0.8em'
+                        }}
+                    >
+                        <option value="bullington">Bullington (Fast)</option>
+                        <option value="itm_wasm">Longley-Rice ITM (Accurate, Slower)</option>
+                    </select>
+                    <div style={{ fontSize: '0.65em', color: '#666', marginTop: '4px' }}>
+                        {!itmSelected && 'FSPL + knife-edge diffraction on 20-point profiles.'}
+                        {itmSelected && itmReady &&
+                            'Full terrain-aware ITM, matching Link Analysis. Uses 100-point profiles.'}
+                        {itmSelected && !itmReady && (
+                            <span style={{ color: '#ffbf00' }}>Loading ITM engine...</span>
+                        )}
+                    </div>
+                </div>
+            )}
+
             {/* Export Report */}
             {batchNodes.length > 1 && (
-                <button 
-                style={{...buttonStyle, background: '#00afb9', width: '100%'}}
+                <button
+                disabled={progress !== null || (itmSelected && !itmReady)}
+                style={{
+                    ...buttonStyle,
+                    background: (progress !== null || (itmSelected && !itmReady)) ? '#444' : '#00afb9',
+                    width: '100%',
+                    cursor: progress !== null ? 'wait' : 'pointer'
+                }}
                 onClick={async () => {
                         const totalLinks = batchNodes.length * (batchNodes.length - 1) / 2;
-                        if (batchNodes.length > 20 && !window.confirm(`Preparing to analyze ${totalLinks} links. This may take a while. Continue?`)) return;
-                        
-                        const startExport = async () => {
-                            let csvContent = "data:text/csv;charset=utf-8,Source,Target,Distance_km,Status,Quality,Margin_dB,Clearance_m\n";
-                            
-                            // Iterate all pairs
-                            for (let i = 0; i < batchNodes.length; i++) {
-                                for (let j = i + 1; j < batchNodes.length; j++) {
-                                    const n1 = batchNodes[i];
-                                    const n2 = batchNodes[j];
-                                    
-                                    try {
-                                        // Fetch Profile
-                                        const profile = await fetchElevationPath(
-                                            {lat: n1.lat, lng: n1.lng}, 
-                                            {lat: n2.lat, lng: n2.lng}, 
-                                            20 // Lower resolution for batch to save time
-                                        );
-                                        
-                                        if (profile) {
-                                            const configA = nodeConfigs.A;
-                                            const configB = nodeConfigs.B;
+                        const modelNote = batchModel === 'itm_wasm' ? ' using ITM' : '';
+                        if (batchNodes.length > 20 && !window.confirm(`Preparing to analyze ${totalLinks} links${modelNote}. This may take a while. Continue?`)) return;
 
-                                            const analysis = analyzeLinkProfile(
-                                                profile,
-                                                freq,
-                                                configA.antennaHeight,
-                                                configB.antennaHeight,
-                                                kFactor,
-                                                clutterHeight
-                                            );
-
-                                            const distKm = profile[profile.length-1].distance;
-
-                                            // Calculate Bullington diffraction for terrain-aware path loss
-                                            const diffraction = analysis.profileWithStats
-                                                ? calculateBullingtonDiffraction(analysis.profileWithStats, freq, configA.antennaHeight, configB.antennaHeight)
-                                                : 0;
-
-                                            // Link Budget with per-node params and terrain diffraction
-                                            const budget = calculateLinkBudget({
-                                                txPower: configA.txPower,
-                                                txGain: configA.antennaGain,
-                                                txLoss: DEVICE_PRESETS[configA.device]?.loss || 0,
-                                                rxGain: configB.antennaGain,
-                                                rxLoss: DEVICE_PRESETS[configB.device]?.loss || 0,
-                                                distanceKm: distKm,
-                                                freqMHz: freq,
-                                                sf, bw,
-                                                excessLoss: diffraction,
-                                                fadeMargin: fadeMargin,
-                                            });
-
-                                            const status = analysis.isObstructed ? 'OBSTRUCTED' : (budget.margin > 10 ? 'GOOD' : 'MARGINAL');
-
-                                            csvContent += `${n1.name},${n2.name},${distKm.toFixed(3)},${status},${analysis.linkQuality},${budget.margin},${analysis.minClearance}\n`;
-                                        }
-                                    } catch (e) {
-                                        console.error("Batch Error", e);
-                                        csvContent += `${n1.name},${n2.name},ERR,ERR,ERR,ERR,ERR\n`;
-                                    }
-                                    
-                                    // Small delay to prevent browser freeze & rate limit
-                                    await new Promise(r => setTimeout(r, 200));
-                                }
-                            }
-                            
-                            // Trigger Download
-                            const encodedUri = encodeURI(csvContent);
-                            const link = document.createElement("a");
-                            link.setAttribute("href", encodedUri);
-                            link.setAttribute("download", `mesh_rf_analysis_${new Date().toISOString().slice(0,10)}.csv`);
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
-                        };
-                        
-                        // Allow UI to update before blocking
-                        setTimeout(startExport, 100);
+                        try {
+                            await runMeshReport();
+                        } catch (e) {
+                            console.error('Mesh report failed', e);
+                            setProgress(null);
+                            setBatchNotification({ type: 'error', message: 'Mesh report failed. See console for details.' });
+                        }
                 }}
                 >
-                    Export Mesh Report
+                    {progress && `Analyzing ${progress.done}/${progress.total}...`}
+                    {!progress && itmSelected && !itmReady && 'Loading ITM Engine...'}
+                    {!progress && !(itmSelected && !itmReady) && 'Export Mesh Report'}
                 </button>
             )}
+
+            {/* Mesh report progress */}
+            {progress && progress.total > 0 && (
+                <div style={{ marginTop: '6px' }}>
+                    <div style={{ height: '4px', background: '#222', borderRadius: '2px', overflow: 'hidden' }}>
+                        <div
+                            style={{
+                                height: '100%',
+                                width: `${(progress.done / progress.total) * 100}%`,
+                                background: 'var(--color-primary)',
+                                transition: 'width 0.2s linear'
+                            }}
+                        />
+                    </div>
+                </div>
+            )}
+
             {batchNodes.length > 0 && (
-                <div style={{fontSize: '0.75em', color: '#888', marginTop: '4px'}}>{batchNodes.length} Nodes Loaded</div>
+                <div style={{fontSize: '0.75em', color: '#888', marginTop: '4px'}}>
+                    {batchNodes.length} Nodes Loaded
+                    {batchNodes.some((n) => n.config) && (
+                        <span style={{ color: 'var(--color-primary)' }}>
+                            {' '}({batchNodes.filter((n) => n.config).length} with per-node config)
+                        </span>
+                    )}
+                </div>
             )}
 
             {/* Batch Import Notification Overlay */}

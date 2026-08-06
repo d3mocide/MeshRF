@@ -1,6 +1,6 @@
 # MeshRF Propagation Engine Roadmap
 
-**Last Updated:** 2026-07-24
+**Last Updated:** 2026-07-27
 
 ---
 
@@ -26,33 +26,21 @@
 - [x] **P5-3** Adaptive Grid & Heatmap: Replaced fixed grid with dynamic density scan and added Heatmap visualization overlay in `OptimizationLayer`.
 - [x] **P5-7** Export Capabilities: Added CSV and KML export for optimized site candidates via `/export-results` endpoint.
 
+### Phase 3: Full Model Switching (Jul 2026)
+
+- [x] **P3-1** Client-Side Hata/FSPL Models. Ported Okumura-Hata to JavaScript (`src/utils/math/hata.js`), mirroring `rf_physics.calculate_hata_loss` term-for-term so client and server agree to 4 decimal places. Added a dispatcher (`src/utils/math/pathLoss.js`) and wired `LinkLayer.jsx` to resolve `fspl` and `hata` locally -- these models now work with no backend, including offline/PWA. `bullington` and server `itm` deliberately stay on the backend, which applies `clutter_height` and `k_factor` to the terrain profile in ways the current JS Bullington does not.
+- [x] **P3-3** WASM ITM for Batch Processing. `BatchProcessing.jsx` gained a propagation-model selector; choosing ITM runs the same WASM engine as Link Analysis over a denser 100-point profile (vs 20 for Bullington), honouring Ground Type and Climate Zone. The module loads lazily on selection, and an individual link that fails ITM falls back to Bullington rather than failing the report. The `Model` column records which model produced each row.
+- [x] **P3-4** Per-Node Configs in Batch CSV. `csvParser.js` now reads optional `Antenna_Height`, `Antenna_Gain`, `TX_Power`, `Device` and `Antenna` columns (with aliases and loose preset-name matching); `nodeConfig.js` merges them over the global A/B config field-by-field. Blank cells and three-column files behave exactly as before. Mesh reports also export the per-node params used.
+
 ---
 
-## Phase 3: Full Model Switching (Medium-term)
-
-### P3-1: Client-Side Hata/FSPL Models
-
-Move Okumura-Hata and explicit FSPL calculations to JavaScript so model switching works without the Python backend. The Bullington diffraction model is already in `rfMath.js`. Adding Hata eliminates the backend dependency for non-ITM models.
-
-**Files:** `src/utils/rfMath.js`, `src/components/Map/LinkLayer.jsx`
+## Phase 3: Remaining
 
 ### P3-2: Model Selection for RF Coverage
 
-Currently the RF coverage tool is hardwired to WASM ITM. Add a model dispatch in `useRFCoverageTool.js` that supports FSPL-only or Hata for faster coverage maps when full ITM precision isn't needed. ITM remains the default.
+Currently the RF coverage tool is hardwired to WASM ITM. Add a model dispatch in `useRFCoverageTool.js` that supports FSPL-only or Hata for faster coverage maps when full ITM precision isn't needed. ITM remains the default. Now that `calculateClientPathLoss` exists (P3-1), the remaining work is a JS raster path over the stitched elevation grid.
 
 **Files:** `src/hooks/useRFCoverageTool.js`, `src/components/Map/Controls/CoverageClickHandler.jsx`
-
-### P3-3: WASM ITM for Batch Processing
-
-Batch mesh reports currently use FSPL + Bullington (frontend-only). Integrate the WASM ITM path (same as link analysis) for full terrain-aware batch reports. Requires fetching elevation profiles for each node pair.
-
-**Files:** `src/components/Map/BatchProcessing.jsx`, `src/hooks/useWasmITM.js`
-
-### P3-4: Per-Node Configs in Batch CSV
-
-Allow CSV import to include optional per-node columns: antenna height, device type, antenna type. Currently all batch nodes use the global A/B config. Per-node overrides would enable realistic multi-device mesh planning.
-
-**Files:** `src/components/Map/BatchProcessing.jsx`
 
 ---
 
@@ -63,12 +51,6 @@ Allow CSV import to include optional per-node columns: antenna height, device ty
 `itmlogic` was previously listed in `requirements.txt` but never imported, so it was dropped as a dead dependency (2026-07). Re-add it when this is implemented as a true Python ITM fallback for server-side batch processing and environments where WASM isn't available. Enables Celery workers to run ITM asynchronously.
 
 **Files:** `rf-engine/rf_physics.py`, `rf-engine/tasks/`
-
-### P4-2: COST 231 Hata Extension
-
-Current Hata model covers 150-1500 MHz. The COST 231 extension covers 1500-2000 MHz for future higher-frequency deployments (e.g., 2.4 GHz ISM). Straightforward formula addition.
-
-**Files:** `rf-engine/rf_physics.py`, `src/utils/rfMath.js` (if client-side Hata is added in P3-1)
 
 ### P4-3: Clutter / Land-Use Integration
 
@@ -97,13 +79,9 @@ Current tools analyze point-to-point links only. A mesh planner would:
 
 Could build on the batch processing infrastructure with graph analysis (Dijkstra/Floyd-Warshall for optimal paths).
 
-### P4-6: Probabilistic / Variability Modes
+### P4-6: Statistical Coverage Contours (Remaining)
 
-The ITM supports time/location/situation variability percentages (currently fixed at 50/50/50). Exposing these as user controls would enable:
-
-- Worst-case planning (90/90/90 for reliability)
-- Best-case estimation (10/10/10 for maximum range)
-- Statistical coverage contours showing probability of reception
+Variability percentages are now user-selectable (see Recently Completed below). The remaining piece is *visualizing* the spread rather than picking a single operating point: rendering probability-of-reception contours by running the coverage grid at several percentages and shading the delta between them.
 
 ---
 
@@ -154,6 +132,32 @@ The ITM supports time/location/situation variability percentages (currently fixe
 **Status:** ✅ Implemented in Phase 5 (CSV/KML).
 
 ## Recently Completed
+
+### P4-6: Probabilistic / Variability Modes (Completed)
+
+**Status:** ✅ Implemented 2026-07-27.
+**Problem:** ITM's time/location/situation variability was hardcoded to 50/50/50 in `libmeshrf/src/meshrf_itm.cpp`, so every prediction was the median forecast with no way to plan for worst case.
+**Solution:** Added `time_pct`, `loc_pct`, `sit_pct` and `mdvar` to `LinkParameters` (`libmeshrf/include/meshrf_itm.h`), exposed them through Embind (`src/bindings.cpp`), and threaded them into the coverage path (`calculate_rf_coverage` gained three trailing arguments). A **Reliability** selector in the Environment sidebar offers Best Case (10/10/10), Typical (50/50/50, default) and Reliable (90/90/90); the mode flows into Link Analysis, RF Coverage and batch ITM reports, and batch rows record which mode produced them.
+
+All new fields are defaulted to the previous hardcoded values, so any caller that ignores them is unchanged -- verified against the built module: a call that never sets the new fields returns a bit-identical result to an explicit 50/50/50.
+
+**Requires a WASM rebuild.** `public/meshrf.wasm`, `libmeshrf/js/meshrf.wasm` and `libmeshrf/js/meshrf.js` are regenerated artifacts and must be rebuilt whenever `libmeshrf/` C++ changes:
+
+```sh
+docker run --rm -v "$PWD/libmeshrf":/app -w /app emscripten/emsdk:latest \
+  bash -c "mkdir -p build_wasm && cd build_wasm && emcmake cmake .. -DEMSCRIPTEN=1 && emmake make"
+cp libmeshrf/build_wasm/meshrf.js  libmeshrf/js/meshrf.js
+cp libmeshrf/build_wasm/meshrf.wasm libmeshrf/js/meshrf.wasm
+cp libmeshrf/build_wasm/meshrf.wasm public/meshrf.wasm
+```
+
+Measured effect on a synthetic ridge profile (915 MHz, 10 m TX / 2 m RX): 10/10/10 = 193.49 dB, 50/50/50 = 203.76 dB, 90/90/90 = 213.66 dB.
+
+### P4-2: COST 231-Hata Extension (Completed)
+
+**Status:** ✅ Implemented 2026-07-27.
+**Problem:** The Hata model only covered 150-1500 MHz, leaving the 1.5-2 GHz range unsupported.
+**Solution:** Added COST 231-Hata to both engines (`calculate_cost231_loss` in `rf-engine/rf_physics.py`, `calculateCost231Loss` in `src/utils/math/hata.js`). Selecting "Hata" now auto-dispatches to COST 231 at or above 1500 MHz, and `cost231` is also accepted as an explicit backend model. Per the standard, COST 231 defines only the 3 dB metropolitan correction -- it has no suburban or rural term -- so `getHataValidity` warns when those environments are selected above the crossover instead of silently reusing the Okumura-Hata corrections. Validity warnings in the Link Analysis panel are now driven from that single helper rather than inline thresholds.
 
 ### P6-1: Per-Node Coverage Visualization (Completed)
 

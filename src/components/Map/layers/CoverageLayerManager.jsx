@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Marker, Popup, Rectangle } from 'react-leaflet';
 import { useRF } from '../../../context/RFContext';
-import { GROUND_TYPES } from '../../../context/EnvironmentContext';
+import { GROUND_TYPES, toVariabilityParams } from '../../../context/EnvironmentContext';
 
 const CoverageLayerManager = ({
     active,
@@ -22,6 +22,7 @@ const CoverageLayerManager = ({
         rxHeight,
         groundType,
         climate,
+        variability,
         antennaHeight,
         recalcTimestamp // Recalc signal
     } = useRF();
@@ -51,6 +52,8 @@ const CoverageLayerManager = ({
                 epsilon: ground.epsilon,
                 sigma: ground.sigma,
                 climate: climate,
+                // ITM statistical variability (ROADMAP P4-6)
+                ...toVariabilityParams(variability),
             };
 
             runAnalysis(lat, lng, h, 25000, rfParams);
@@ -115,6 +118,8 @@ const CoverageLayerManager = ({
                                     epsilon: dragGround.epsilon,
                                     sigma: dragGround.sigma,
                                     climate: climate,
+                                    // ITM statistical variability (ROADMAP P4-6)
+                                    ...toVariabilityParams(variability),
                                 };
 
                                 runAnalysis(lat, lng, h, 25000, rfParams);

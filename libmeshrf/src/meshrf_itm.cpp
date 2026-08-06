@@ -33,22 +33,21 @@ std::vector<float> calculate_radial_loss(float* terrain_profile, int profile_len
     // we effectively use the first i+3 elements.
     std::vector<double> pfl_buffer(profile_length + 2);
 
-    // Default Environmental Parameters (if not in struct, strictly follow pure ITM args)
-    // Using values from params or defaults
-    int mdvar = 12; // Mode of variability (Accidental/General?) - 12 is common default?
-    // Let's look at ITM docs or legacy code. Using standard defaults.
-    // mdvar: 
+    // Variability parameters come from the caller (ROADMAP P4-6); LinkParameters
+    // defaults them to the median 50/50/50 prediction with mdvar=12, which is
+    // what this function previously hardcoded.
+    // mdvar:
     // 0 - Single message
     // 1 - Accidental
     // 2 - Mobile
     // 3 - Broadcast
-    // ...
-    // Using 1 (spot) or 12? defaults usually passed in.
-    
-    // Time/Loc/Sit
-    double time_pct = 50.0;
-    double loc_pct = 50.0;
-    double sit_pct = 50.0; 
+    int mdvar = params.mdvar;
+
+    // Time/Loc/Sit: percentage of time/locations/situations for which the
+    // predicted loss is NOT exceeded.
+    double time_pct = params.time_pct;
+    double loc_pct = params.loc_pct;
+    double sit_pct = params.sit_pct;
 
     // Result at index 0 (TX) is 0 loss
     results[0] = 0.0f;
