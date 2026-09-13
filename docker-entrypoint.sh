@@ -51,14 +51,22 @@ else
     echo "        to topo / topo_dark / satellite, which need no key."           >&2
     CARTO_TILE_QUERY=""
 fi
-export CARTO_TILE_QUERY
 
 # Belt-and-braces: Nginx creates its own proxy_cache_path directory at startup.
 # Tolerate failure so a hardened deployment running as a non-root `user:` does
 # not crash-loop here.
 mkdir -p /var/cache/nginx/basemaps 2>/dev/null || true
 
-envsubst '${CARTO_TILE_QUERY}' \
+# Substitute with sed rather than envsubst: sed is part of busybox and so is
+# guaranteed present, whereas envsubst comes from gettext and is not something
+# we can rely on being installed in the base image. A missing binary here would
+# crash-loop the container on every start.
+#
+# Escape the characters sed treats specially in a replacement -- a backslash, an
+# `&` (which would expand to the whole match), and the `|` delimiter -- so that
+# an API key containing any of them still renders correctly.
+escaped_query=$(printf '%s' "$CARTO_TILE_QUERY" | sed -e 's/[\\&|]/\\&/g')
+sed 's|${CARTO_TILE_QUERY}|'"$escaped_query"'|g' \
     < /etc/nginx/templates/default.conf.template \
     > /etc/nginx/conf.d/default.conf
 chmod 600 /etc/nginx/conf.d/default.conf
