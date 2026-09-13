@@ -21,13 +21,26 @@ A powerful optimization engine that scans a radial area around a transmitter to 
 
 ### 2. Multi-Site Manager (Manual Mode)
 
-A dedicated interface for managing a list of manual candidate sites.
+A dedicated interface for managing a list of manual candidate sites, with a
+results panel split across **Sites**, **Links** and **Topology** tabs.
 
 **Features:**
 
 - **Candidate List**: Add/Remove potential sites manually.
 - **Comparison**: Toggle between different candidates to compare viewsheds.
 - **Conversion**: Easily promote a candidate site to a permanent Network Node.
+- **Per-Node Coverage Colors**: Each selected node's coverage renders in its own
+  color rather than one flat composite mask, so overlapping sites are
+  distinguishable at a glance. Markers and the Sites table are color-matched.
+- **Marginal Coverage**: Each site reports the percentage of area only *it*
+  covers, which surfaces redundant placements before you deploy them.
+- **Inter-Node Link Matrix** (Links tab): After a scan, every site pair is
+  analysed for path loss and Fresnel clearance and rated Viable, Degraded or
+  Blocked. Coloured polylines are drawn on the map — cyan = viable,
+  gold = degraded, red = blocked.
+- **Mesh Topology** (Topology tab): A BFS-based connectivity score, multi-hop
+  relay detection and an all-pairs path table, so you can tell whether your
+  proposed sites actually form a connected mesh rather than isolated clusters.
 
 ## 🚀 How to Use
 
@@ -59,7 +72,7 @@ A dedicated interface for managing a list of manual candidate sites.
 - **Fresnel**: Prioritizes clear line-of-sight and Fresnel zone clearance.
 
 > [!TIP]
-> Use **Coverage Analysis** to discovering the best reception areas, then switch to **Multi-Site Manager** to fine-tune specific locations.
+> Use **Coverage Analysis** to discover the best reception areas, then switch to **Multi-Site Manager** to fine-tune specific locations.
 
 > [!NOTE]  
 > "Ghost Nodes" (Best Signal markers) are temporary. To save a location, convert it to a node or add it to your Multi-Site list.

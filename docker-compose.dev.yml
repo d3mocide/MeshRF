@@ -11,8 +11,19 @@ services:
       - .:/app
       - /app/node_modules
     environment:
-      - VITE_MAP_LAT=45.5152
-      - VITE_MAP_LNG=-122.6784
+      # The dev server is Vite, which only exposes VITE_-prefixed variables to
+      # the browser. These are mapped from the same unprefixed names used by
+      # docker-compose.yml and .env, so one .env drives both stacks.
+      - VITE_DEFAULT_MAP_STYLE=${DEFAULT_MAP_STYLE:-dark_green}
+      - VITE_DEFAULT_UNITS=${DEFAULT_UNITS:-imperial}
+      - VITE_MAP_LAT=${MAP_LAT:-45.5152}
+      - VITE_MAP_LNG=${MAP_LNG:--122.6784}
+      - VITE_MAP_ZOOM=${MAP_ZOOM:-13}
+      # Deliberately NOT VITE_-prefixed: a VITE_ variable is inlined into the
+      # client bundle. vite.config.js reads this in Node and appends it to
+      # proxied tile requests, so the key stays server-side.
+      - CARTO_API_KEY=${CARTO_API_KEY:-}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-}
       - API_TARGET=http://rf-engine:5001
     restart: unless-stopped
     networks:

@@ -37,6 +37,39 @@ import SiteAnalysisPanel from "./UI/SiteAnalysisPanel";
 import SiteAnalysisResultsPanel from "./UI/SiteAnalysisResultsPanel";
 import BatchNodesPanelWrapper from "./Controls/BatchNodesPanelWrapper";
 
+// Runtime config
+import { getRuntimeNumber } from "../../utils/runtimeConfig";
+
+// Initial map view. Portland, OR is the historical default and stays the
+// fallback when MAP_LAT/MAP_LNG/MAP_ZOOM are unset or invalid.
+const FALLBACK_MAP_LAT = 45.5152;
+const FALLBACK_MAP_LNG = -122.6784;
+const FALLBACK_MAP_ZOOM = 13;
+
+// CARTO began watermarking unauthenticated raster tiles in August 2026, so the
+// tiles now need an API key. Requesting them same-origin lets nginx (prod) or
+// the Vite dev server append the key server-side -- see the `/basemaps` proxy
+// in nginx.conf and vite.config.js. The key is therefore never part of the
+// bundle or of any URL the browser can see.
+const cartoTiles = (style) => `/basemaps/${style}/{z}/{x}/{y}{r}.png`;
+
+// CARTO's free tier requires that this attribution stays visible on every map.
+const CARTO_ATTRIBUTION =
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
+const ESRI_TOPO_ATTRIBUTION =
+  "Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ, TomTom, Intermap, iPC, USGS, FAO, NPS, NRCAN, GeoBase, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), and the GIS User Community";
+const ESRI_IMAGERY_ATTRIBUTION =
+  "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community";
+
+const MAP_STYLES = {
+  dark: { url: cartoTiles("dark_all"), attribution: CARTO_ATTRIBUTION },
+  dark_green: { url: cartoTiles("rastertiles/voyager"), attribution: CARTO_ATTRIBUTION, className: "dark-mode-tiles" },
+  light: { url: cartoTiles("rastertiles/voyager"), attribution: CARTO_ATTRIBUTION },
+  topo: { url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}", attribution: ESRI_TOPO_ATTRIBUTION },
+  topo_dark: { url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}", attribution: ESRI_TOPO_ATTRIBUTION, className: "dark-mode-tiles" },
+  satellite: { url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", attribution: ESRI_IMAGERY_ATTRIBUTION },
+};
+
 // Custom SVG marker icon
 const customMarkerIcon = L.divIcon({
   html: `
@@ -166,15 +199,6 @@ const MapComponent = () => {
     }
   }, []);
 
-  // Map Configs
-  const MAP_STYLES = {
-    dark: { url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>' },
-    dark_green: { url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>', className: "dark-mode-tiles" },
-    light: { url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>' },
-    topo: { url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}", attribution: "Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ, TomTom, Intermap, iPC, USGS, FAO, NPS, NRCAN, GeoBase, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), and the GIS User Community" },
-    topo_dark: { url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}", attribution: "Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ, TomTom, Intermap, iPC, USGS, FAO, NPS, NRCAN, GeoBase, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), and the GIS User Community", className: "dark-mode-tiles" },
-    satellite: { url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", attribution: "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community" },
-  };
   const currentStyle = MAP_STYLES[mapStyle] || MAP_STYLES.dark_green;
 
   // DeckGL Layers Preparation
@@ -264,7 +288,15 @@ const MapComponent = () => {
   }, [toolMode, viewshedLayer, rfResultLayer]);
 
 
-  const defaultPosition = [45.5152, -122.6784];
+  // Resolved once on mount: MapContainer's center/zoom are initial-view props,
+  // so recomputing them on later renders would have no effect anyway.
+  const [initialView] = useState(() => ({
+    center: [
+      getRuntimeNumber("MAP_LAT", FALLBACK_MAP_LAT, { min: -90, max: 90 }),
+      getRuntimeNumber("MAP_LNG", FALLBACK_MAP_LNG, { min: -180, max: 180 }),
+    ],
+    zoom: getRuntimeNumber("MAP_ZOOM", FALLBACK_MAP_ZOOM, { min: 0, max: 20 }),
+  }));
 
   // Pass RF context explicitly to handler to avoid stale closures in event loop
   const rfContextFacade = useRF();
@@ -272,8 +304,8 @@ const MapComponent = () => {
   return (
     <div style={{ flex: 1, height: "100%", position: "relative" }}>
       <MapContainer
-        center={defaultPosition}
-        zoom={13}
+        center={initialView.center}
+        zoom={initialView.zoom}
         style={{ height: "100%", width: "100%", background: "#0a0a0f" }}
         zoomControl={false}
       >

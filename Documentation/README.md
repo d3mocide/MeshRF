@@ -7,9 +7,14 @@ Welcome to the MeshRF Documentation site. MeshRF is a powerful web-based toolset
 - [**Link Analyzer**](./link-analyzer.md) - Point-to-point link budget and Fresnel zone analysis.
 - [**Viewshed**](./viewshed.md) - Optical line-of-sight analysis using terrain data.
 - [**RF Simulator**](./rf-simulator.md) - Radio propagation heatmaps and coverage analysis.
-- [**Elevation Scan**](./elevation-scan.md) - Rapid terrain analysis to find ideal transmitter locations.
+- [**Site Analysis**](./site-analyzer.md) - Rapid terrain analysis to find ideal transmitter locations, plus multi-site mesh planning.
 - [**Hardware Settings**](./hardware-settings.md) - Detailed guide on devices, antennas, and radio presets.
 - [**Batch Processing**](./batch-processing.md) - Bulk analysis and mesh report generation via CSV.
+
+## Guides
+
+- [**Tool Interactions**](./interactions.md) - How the tools combine into a planning workflow.
+- [**PWA Guide**](./pwa-guide.md) - Installing meshRF on desktop and mobile.
 
 ## Getting Started
 
@@ -22,7 +27,7 @@ Welcome to the MeshRF Documentation site. MeshRF is a powerful web-based toolset
 
 ## How it Works
 
-MeshRF combines high-resolution terrain data (DEM) with specialized RF propagation models (Free Space Path Loss, Okumura-Hata) to provide accurate predictions for wireless network performance.
+MeshRF combines high-resolution terrain data (DEM) with specialized RF propagation models — Free Space Path Loss, Okumura-Hata / COST 231, Bullington diffraction, and ITM (Longley-Rice) — to provide accurate predictions for wireless network performance.
 
 ---
 

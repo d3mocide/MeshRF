@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **CARTO Basemap API Key Support**: CARTO began requiring an API key for its raster basemaps in August 2026; without one the `dark`, `dark_green` and `light` styles render with an "API KEY REQUIRED" watermark. Set `CARTO_API_KEY` in `.env` (free key: <https://carto.com/basemaps/apikey/>). The key is applied **server-side only** — the browser requests tiles from a same-origin `/basemaps/...` path, and Nginx (production) or the Vite dev/preview server (development) appends the key on the way to CARTO. It is therefore absent from the JS bundle, from `env-config.js` and from anything visible in devtools. The variable is deliberately *not* `VITE_`-prefixed, since Vite inlines those into the client bundle.
+  - Nginx caches proxied tiles locally (30 days, 512 MB) so repeat views do not spend the account's monthly quota, and the proxy clears any client-supplied query string so a caller cannot substitute their own key. The location regex only accepts well-formed `{style}/{z}/{x}/{y}.png` paths, so it cannot be driven as a general-purpose open proxy.
+  - `nginx.conf` is now a template rendered by `docker-entrypoint.sh` at container start, so the key is supplied at deploy time rather than baked into the published image.
+- `MAP_ZOOM` configures the initial zoom level, alongside the now-working `MAP_LAT` / `MAP_LNG`.
+- `src/utils/runtimeConfig.js` centralizes runtime configuration lookups (`window._env_` → `import.meta.env.VITE_*` → default), with range validation for numeric settings and unit tests covering both layers.
+
+### Fixed
+
+- **Map center environment variables had no effect** ([#23](https://github.com/d3mocide/MeshRF/issues/23)): `MapContainer` hardcoded Portland, OR and never read `VITE_MAP_LAT` / `VITE_MAP_LNG`. Two separate faults were involved — the variables were unused in the source, and `VITE_`-prefixed variables are inlined by Vite at *build* time, so setting them in `docker-compose.yml` could never reach the prebuilt image regardless. The initial view now resolves through `runtimeConfig`, and `docker-entrypoint.sh` writes `MAP_LAT` / `MAP_LNG` / `MAP_ZOOM` into `env-config.js` at container start. `VITE_MAP_LAT` / `VITE_MAP_LNG` are still accepted as deprecated aliases. Invalid or out-of-range values now warn and fall back to the default instead of handing Leaflet a `NaN`.
+- `public/env-config.js` no longer ships populated defaults. Because `window._env_` takes priority over `import.meta.env`, its baked-in values silently shadowed the `VITE_*` variables during `npm run dev` — part of why the map-center settings appeared to do nothing.
+- `vite preview` had no proxy configuration, so a built app served through it lost both `/api` and basemap proxying. Both servers now share one proxy definition.
+
+### Changed
+
+- **`.env.example` rewritten**. It previously documented only two elevation variables and omitted everything else the stack actually reads. It now covers the basemap key, frontend defaults, elevation, Redis and dev-only settings, and Compose substitutes from it (`${MAP_LAT:-45.5152}`), so one `.env` drives both the production and development stacks.
+- `README.md` version corrected to match `package.json` (was pinned at v1.16.1), configuration table rebuilt — it listed a `dark_matter` style that does not exist and omitted `topo_dark`, `MAP_ZOOM`, `ELEVATION_*`, `REDIS_PASSWORD` and `ALLOWED_HOSTS` — and a Basemap API Key section added.
+- `MAP_STYLES` moved out of the `MapContainer` render body; it was rebuilt on every render, and the repeated attribution strings are now shared constants.
+- `ALLOWED_HOSTS` removed from `docker-compose.yml` and added to `docker-compose.dev.yml`. It is a Vite dev-server option and had no effect on the production image, which serves through Nginx.
+
+### Removed
+
+- `VITE_ELEVATION_DATASET` read from `src/utils/elevation.js`. The `/elevation-batch` endpoint ignores the `dataset` field in the request body — dataset selection is made server-side by the rf-engine's `ELEVATION_DATASET` — so the variable configured nothing.
+
+### Documentation
+
+- `Documentation/README.md` linked to `elevation-scan.md`, which has never existed; the tool is now Site Analysis. Added the missing Tool Interactions and PWA guide links, and `link-analyzer.md` to the README's documentation list.
+- `interactions.md` had a duplicated step 3/4 from a copy-paste error, and still referred to the renamed "Elevation Scan" tool. Its closing tip recommended Hata for verifying links, which assumes flat terrain; it now points at Bullington/ITM.
+- `hardware-settings.md` was missing the Lilygo T-Deck and Custom Device presets, misnamed "Station G2 (High Power)", and documented no cable types despite the cable loss calculator shipping six. Preset names and gains realigned with `src/data/presets.js`.
+- `site-analyzer.md` Multi-Site section predated the Inter-Node Link Matrix, Mesh Topology, Marginal Coverage and per-node coverage colors that the README already advertised.
+- `rf-simulator.md` did not mention that coverage is computed with WASM ITM, nor the Ground Type / Climate Zone / Reliability inputs. `link-analyzer.md` gained the Reliability parameter.
+
 ## [1.17.0] - 2026-08-06
 
 ### Added
