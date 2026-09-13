@@ -6,11 +6,10 @@ MeshRF is most powerful when its tools are used in combination. This guide expla
 
 A typical planning cycle often looks like this:
 
-1. **Elevation Scan**: Start by scanning a wide area to find the highest potential site.
+1. **Site Analysis**: Start by scanning a wide area to find the highest potential site.
 2. **Viewshed**: Place an observer on the #1 ranked spot to verify visual coverage of your target area.
 3. **RF Simulator**: Switch to the simulator to see how signal strength behaves with realistic hardware settings from that same spot.
-4. **RF Simulator**: Switch to the simulator to see how signal strength behaves with realistic hardware settings from that same spot.
-5. **Link Analyzer**: Finally, draw a point-to-point link between your new site and an existing node to verify the backbone connection.
+4. **Link Analyzer**: Finally, draw a point-to-point link between your new site and an existing node to verify the backbone connection.
 
 ## Navigation & Controls
 
@@ -35,5 +34,5 @@ Changing the **Transmitter Height** in the Global Parameters sidebar will instan
 
 ## Tips for Success
 
-- Use the **Topo Map** style when using the **Elevation Scan** to better understand the land features being analyzed.
-- Always verify high-margin links with the **Realistic (Hata)** propagation model before finalizing a site.
+- Use the **Topo Map** style when running **Site Analysis** to better understand the land features being analyzed.
+- Always verify high-margin links with a terrain-aware model (**Bullington** or **ITM**) before finalizing a site. The Hata family assumes flat terrain.

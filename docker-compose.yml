@@ -5,14 +5,18 @@ services:
     ports:
       - "80:80"
     environment:
-      # Hostname for reverse proxy
-      - ALLOWED_HOSTS=localhost
-      # Default Map Center (Portland, OR)
-      - VITE_MAP_LAT=45.5152
-      - VITE_MAP_LNG=-122.6784
-      # UI Defaults (Runtime Configurable)
-      - DEFAULT_MAP_STYLE=dark_green
-      - DEFAULT_UNITS=imperial
+      # --- UI Defaults (applied at container start, no rebuild needed) ---
+      - DEFAULT_MAP_STYLE=${DEFAULT_MAP_STYLE:-dark_green}
+      - DEFAULT_UNITS=${DEFAULT_UNITS:-imperial}
+      # Initial map center and zoom (default: Portland, OR)
+      - MAP_LAT=${MAP_LAT:-45.5152}
+      - MAP_LNG=${MAP_LNG:--122.6784}
+      - MAP_ZOOM=${MAP_ZOOM:-13}
+      # --- CARTO Basemaps ---
+      # Free key: https://carto.com/basemaps/apikey/
+      # Injected into tile requests by Nginx, so it is never sent to the browser.
+      # Without it CARTO styles render with an "API KEY REQUIRED" watermark.
+      - CARTO_API_KEY=${CARTO_API_KEY:-}
     restart: always
     networks:
       - meshrf_net

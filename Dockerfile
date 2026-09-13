@@ -15,8 +15,10 @@ FROM nginx:alpine
 # Copy build artifacts to Nginx html directory
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy custom Nginx config
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy custom Nginx config as a template. The entrypoint renders it to
+# conf.d/default.conf so CARTO_API_KEY can be supplied at container start
+# rather than baked into the published image.
+COPY nginx.conf /etc/nginx/templates/default.conf.template
 
 # Copy Entrypoint Script
 COPY docker-entrypoint.sh /

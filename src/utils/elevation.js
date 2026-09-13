@@ -1,5 +1,8 @@
 import * as turf from '@turf/turf';
 
+// Matches the `dataset` default on the rf-engine's BatchElevationRequest model.
+const DEFAULT_ELEVATION_DATASET = 'ned10m';
+
 /**
  * Fetch elevation profile along a path using local RF Engine proxy
  * @param {Object} start - {lat, lng}
@@ -38,8 +41,11 @@ export const fetchElevationPath = async (start, end, samples = 20) => {
         }
 
         // Call local RF-Engine OpenTopoData proxy
-        const baseUrl = '/api'; // Proxied to RF engine invite.config
-        const dataset = import.meta.env.VITE_ELEVATION_DATASET || 'ned10m';
+        const baseUrl = '/api'; // Proxied to the RF engine, see vite.config.js
+        // The dataset is chosen server-side by the rf-engine's ELEVATION_DATASET
+        // environment variable; /elevation-batch accepts this field for wire
+        // compatibility but ignores it, so there is nothing to configure here.
+        const dataset = DEFAULT_ELEVATION_DATASET;
         const locationStr = lats.map((lat, i) => `${lat},${lngs[i]}`).join('|');
         
         const response = await fetch(`${baseUrl}/elevation-batch`, {

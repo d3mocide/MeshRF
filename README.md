@@ -1,8 +1,8 @@
-# meshRF 📡 v1.16.1
+# meshRF 📡 v1.17.1
 
 A professional-grade RF propagation and link analysis tool designed for LoRa Mesh networks (Meshtastic, Reticulum, Sidewinder). Built with **React**, **Leaflet**, and a high-fidelity physics core combining a **Python Geodetic Engine** with **High-Performance WASM Modules**.
 
-meshRF is designed for **mission-critical availability**. It operates with **zero external API dependencies** for elevation data, serving high-resolution terrain data directly from self-hosted containers. Currently we do rely on exteranl API's for map tiles but that will be updated soon as well for full offline use. (optional)
+meshRF is designed for **mission-critical availability**. It operates with **zero external API dependencies** for elevation data, serving high-resolution terrain data directly from self-hosted containers. Map tiles are still fetched from external providers (CARTO and Esri); full offline basemap support is on the roadmap.
 
 ![Link Analysis Demo](./public/meshrf-preview-1.7.3.png)
 
@@ -46,6 +46,7 @@ meshRF is designed for **mission-critical availability**. It operates with **zer
 
 Detailed guides for specific tools:
 
+- [📖 link-analyzer.md](./Documentation/link-analyzer.md) - Point-to-point link budgets & Fresnel zones.
 - [📖 site-analyzer.md](./Documentation/site-analyzer.md) - **Site Finder** & **Multi-Site** tools.
 - [📖 viewshed.md](./Documentation/viewshed.md) - Optical LOS analysis.
 - [📖 rf-simulator.md](./Documentation/rf-simulator.md) - Coverage heatmap simulation.
@@ -114,16 +115,75 @@ meshRF is fully containerized and easy to deploy:
    By default, meshRF uses a local **OpenTopoData** instance. You must download elevation files (HGT/TIF) to the `./data/opentopodata` directory.
    👉 **[See Setup Guide](./OPENTOPO_GUIDE.md)** for data download instructions.
 
+4. **Map Basemaps**:
+   CARTO now requires an API key for its basemap tiles. See
+   [Basemap API Key](#-basemap-api-key-carto) below — it takes about a minute
+   and the free tier is generous.
+
 ### ⚙️ Configuration (Docker)
 
-You can customize the application behavior by setting environment variables in `docker-compose.yml`:
+Copy `.env.example` to `.env` and edit it. Docker Compose picks it up
+automatically for both the production and development stacks:
 
-| Variable            | Description                                                                                    | Default      |
-| ------------------- | ---------------------------------------------------------------------------------------------- | ------------ |
-| `DEFAULT_MAP_STYLE` | Initial map theme (options: `dark`, `light`, `dark_matter`, `dark_green`, `topo`, `satellite`) | `dark_green` |
-| `DEFAULT_UNITS`     | Measurement system (`imperial` or `metric`)                                                    | `imperial`   |
-| `VITE_MAP_LAT`      | Initial map center latitude                                                                    | `45.5152`    |
-| `VITE_MAP_LNG`      | Initial map center longitude                                                                   | `-122.6784`  |
+```bash
+cp .env.example .env
+```
+
+| Variable            | Description                                                                                   | Default              |
+| ------------------- | --------------------------------------------------------------------------------------------- | -------------------- |
+| `CARTO_API_KEY`     | CARTO basemap key. Applied server-side, never exposed to the browser.                         | _(unset)_            |
+| `MAP_LAT`           | Initial map center latitude                                                                   | `45.5152`            |
+| `MAP_LNG`           | Initial map center longitude                                                                  | `-122.6784`          |
+| `MAP_ZOOM`          | Initial zoom level (0-20)                                                                     | `13`                 |
+| `DEFAULT_MAP_STYLE` | Initial map theme (`dark`, `dark_green`, `light`, `topo`, `topo_dark`, `satellite`)           | `dark_green`         |
+| `DEFAULT_UNITS`     | Measurement system (`imperial` or `metric`)                                                   | `imperial`           |
+| `ELEVATION_API_URL` | OpenTopoData endpoint used by the RF Engine                                                   | `http://opentopodata:5000` |
+| `ELEVATION_DATASET` | Terrain dataset name, must exist in `data/opentopodata/config.yaml`                           | `ned10m`             |
+| `REDIS_PASSWORD`    | Redis password. **Change this before exposing meshRF beyond localhost.**                      | `changeme`           |
+| `ALLOWED_HOSTS`     | Dev server only: hostnames the Vite dev server accepts, or `true` for any                     | _(unset)_            |
+
+> [!NOTE]
+> The frontend settings are applied when the container **starts**, so changing
+> them needs only `docker compose up -d` — no image rebuild. They are written
+> into `env-config.js` at boot rather than compiled into the bundle, which is
+> why a `VITE_`-prefixed variable in `docker-compose.yml` has no effect on the
+> published image. `VITE_MAP_LAT` / `VITE_MAP_LNG` are still accepted as
+> deprecated aliases for `MAP_LAT` / `MAP_LNG`.
+
+### 🔑 Basemap API Key (CARTO)
+
+As of August 2026 CARTO requires an API key for its raster basemaps. Without
+one, the `dark`, `dark_green` and `light` styles still render but carry an
+**"API KEY REQUIRED"** watermark.
+
+1. Request a free key at **[carto.com/basemaps/apikey](https://carto.com/basemaps/apikey/)**
+   — no account needed, and the free tier covers 5 million tile requests/month.
+2. Add it to your `.env`:
+
+   ```bash
+   CARTO_API_KEY=your_key_here
+   ```
+
+3. `docker compose up -d`.
+
+**The key is never sent to the browser.** meshRF requests tiles from its own
+`/basemaps/...` path; Nginx (production) and the Vite dev server (development)
+append the key as the request passes through to CARTO. It stays in the server
+config, so it is absent from the JavaScript bundle, from `env-config.js`, and
+from anything visible in devtools. Nginx also caches tiles locally, which keeps
+repeat views off your monthly quota.
+
+> [!IMPORTANT]
+> Never rename this to `VITE_CARTO_API_KEY`. Vite inlines any `VITE_`-prefixed
+> variable into the client bundle, which would publish your key to every
+> visitor. The unprefixed name is what keeps it server-side.
+
+> [!TIP]
+> Prefer not to sign up at all? The `topo`, `topo_dark` and `satellite` styles
+> are served by Esri and need no key. Set `DEFAULT_MAP_STYLE=topo_dark`.
+
+CARTO's free tier requires that the OpenStreetMap and CARTO attribution stays
+visible on the map. meshRF displays it by default — please leave it in place.
 
 ---
 

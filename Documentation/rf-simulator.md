@@ -2,11 +2,17 @@
 
 The **RF Simulator** provides a radio propagation heatmap from a transmitter. Unlike the optical Viewshed, it accounts for frequency-specific attenuation and signal quality metrics.
 
+Coverage is computed with the **ITM (Longley-Rice)** model running as a WASM
+module in the browser, so it is terrain-aware and needs no backend round-trip
+once the module has loaded.
+
 ## Features
 
 - **SNR Heatmap**: Color-coded visualization of signal quality (SNR) across the area.
 - **Threshold Awareness**: Fades out signals that fall below the configured receiver sensitivity.
 - **Multi-Parameter Support**: Factors in Frequency, TX Power, Antenna Gain, and Spreading Factor.
+- **Environment-Aware**: Honours the **Ground Type** (permittivity/conductivity) and **Climate Zone** set in the Environment sidebar.
+- **Reliability Modes**: The **Reliability** control selects ITM's statistical confidence — Best Case (10%), Typical (50%, default) or Reliable (90%). Planning at *Reliable* shows the coverage you can count on in poor conditions rather than on a median day.
 
 ## How to Use
 

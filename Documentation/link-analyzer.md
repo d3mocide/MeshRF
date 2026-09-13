@@ -27,6 +27,7 @@ The **Link Analyzer** is designed for detailed point-to-point analysis between t
 | **Antenna Height** | Increases clearance and reduces path loss.                           |
 | **Frequency**      | Higher frequencies have higher path loss and smaller Fresnel zones.  |
 | **Environment**    | Urban vs. Rural affects the path loss calculation in Realistic mode. |
+| **Reliability**    | ITM only. Best Case (10%) / Typical (50%) / Reliable (90%) statistical confidence. Higher confidence predicts more path loss. |
 
 > [!TIP]
 > Use the **Lock** button to freeze a link and adjust transmitter parameters without losing your placement.
