@@ -1,27 +1,23 @@
-# MeshRF v1.17.0 - Propagation Model Expansion
+# MeshRF v1.17.1 - Map Config & Basemap Key Patch
 
-**Release Date**: August 6, 2026
-**Type**: Minor Release (New Features)
-**Focus**: Rounding out the propagation model roadmap -- per-node coverage visualization, client-side Hata/FSPL, COST 231, WASM ITM batch reports, per-node CSV configs, and selectable ITM reliability modes.
+**Release Date**: September 13, 2026
+**Type**: Patch Release (Bug Fixes)
+**Focus**: Fixing the map center configuration variables, restoring CARTO basemap tiles now that CARTO requires an API key, and realigning `.env.example`, `README.md` and `Documentation/` with the current codebase.
 
 ---
 
 ## 🎯 Overview
 
-This release closes out several roadmap items (P6-1, P3-1, P3-3, P3-4, P4-2, P4-6):
+This patch release fixes three configuration bugs reported against the deployed image, plus a broad documentation cleanup:
 
-- **Per-Node Coverage Visualization**: Multi-Site Analysis now renders each node's coverage in a distinct color instead of one flat composite mask.
-- **Client-Side Hata & FSPL**: The Link Analysis tool resolves `fspl` and `hata` locally in the browser, so both work fully offline/PWA with no backend round-trip.
-- **COST 231-Hata Extension**: Hata coverage now spans 150-2000 MHz (previously capped at 1500 MHz).
-- **WASM ITM for Batch Reports**: Batch Processing can run the same Longley-Rice WASM engine used by Link Analysis over a 100-point terrain profile.
-- **Per-Node Configs in Batch CSV**: CSV import accepts optional per-node antenna height, gain, TX power, device and antenna columns.
-- **Reliability (Variability) Modes**: ITM's time/location/situation variability is now user-selectable (Best Case / Typical / Reliable) instead of hardcoded to 50/50/50. Requires a `libmeshrf` WASM rebuild, included in this release.
-
-Also includes a new CI workflow (frontend + rf-engine tests on every push/PR), a lint config fix that surfaced ~100 previously-masked warnings (all now resolved), and dependency audit fixes.
+- **Map Center Fix** ([#23](https://github.com/d3mocide/MeshRF/issues/23)): `MAP_LAT` / `MAP_LNG` / `MAP_ZOOM` now actually move the initial map view. Two faults were stacked — the variables were unused in the source, and the `VITE_`-prefixed names used previously are inlined by Vite at *build* time, so setting them in `docker-compose.yml` could never reach the prebuilt image regardless. `VITE_MAP_LAT` / `VITE_MAP_LNG` still work as deprecated aliases.
+- **CARTO Basemap API Key**: CARTO now requires a key for its raster basemaps or tiles render with an "API KEY REQUIRED" watermark. `CARTO_API_KEY` is applied **server-side only** — Nginx (production) or the Vite dev/preview server (development) appends it to proxied tile requests, so it is never present in the JS bundle or visible in devtools. Get a free key at [carto.com/basemaps/apikey](https://carto.com/basemaps/apikey/).
+- **`.env.example` Realigned**: previously documented only two elevation variables; now covers every setting the stack actually reads, and Compose substitutes from it so one `.env` drives both the production and development stacks.
+- **Documentation Audit**: `README.md`'s version and configuration table were out of date, `Documentation/README.md` linked a guide that never existed, and several tool guides predated features already shipped in 1.17.0. See [CHANGELOG.md](CHANGELOG.md) for the full list.
 
 See [CHANGELOG.md](CHANGELOG.md) for the full list of changes.
 
 ---
 
 **Full Changelog**: [CHANGELOG.md](CHANGELOG.md)
-**Previous Release**: [v1.16.1](https://github.com/d3mocide/MeshRF/releases/tag/v1.16.1)
+**Previous Release**: [v1.17.0](https://github.com/d3mocide/MeshRF/releases/tag/v1.17.0)

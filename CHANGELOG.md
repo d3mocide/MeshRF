@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.17.1] - 2026-09-13
 
 ### Added
 
@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Map center environment variables had no effect** ([#23](https://github.com/d3mocide/MeshRF/issues/23)): `MapContainer` hardcoded Portland, OR and never read `VITE_MAP_LAT` / `VITE_MAP_LNG`. Two separate faults were involved — the variables were unused in the source, and `VITE_`-prefixed variables are inlined by Vite at *build* time, so setting them in `docker-compose.yml` could never reach the prebuilt image regardless. The initial view now resolves through `runtimeConfig`, and `docker-entrypoint.sh` writes `MAP_LAT` / `MAP_LNG` / `MAP_ZOOM` into `env-config.js` at container start. `VITE_MAP_LAT` / `VITE_MAP_LNG` are still accepted as deprecated aliases. Invalid or out-of-range values now warn and fall back to the default instead of handing Leaflet a `NaN`.
 - `public/env-config.js` no longer ships populated defaults. Because `window._env_` takes priority over `import.meta.env`, its baked-in values silently shadowed the `VITE_*` variables during `npm run dev` — part of why the map-center settings appeared to do nothing.
 - `vite preview` had no proxy configuration, so a built app served through it lost both `/api` and basemap proxying. Both servers now share one proxy definition.
+- `docker-entrypoint.sh` rendered `nginx.conf` with `envsubst`, which comes from gettext and is not guaranteed to be present in the nginx base image — a missing binary would crash-loop the container on every start. Rendering now uses `sed`, which is part of busybox, with the substitution escaped so an API key containing `&`, `|` or `\` still renders correctly.
 
 ### Changed
 
